@@ -1,4 +1,6 @@
 LICENSE
 README.md
 build.sh
+cpp/lexer.cpp
+cpp/lexer.hpp
 cpp/main.cpp
