@@ -10,7 +10,7 @@ using std::optional;
 struct Lexer {
     struct Token {
         enum struct Type {
-            LBRACE, RBRACE
+            LPAREN, RPAREN, LBRACKET, RBRACKET, LBRACE, RBRACE
         };
 
         const Type typ;
