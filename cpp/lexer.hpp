@@ -8,13 +8,20 @@ namespace brmh {
 using std::optional;
 
 struct Lexer {
-    Lexer() = delete;
+    struct Token {
+        enum struct Type {
+            LBRACE, RBRACE
+        };
+
+        const Type typ;
+        const char* chars;
+    };
 
     Lexer(const char* chars);
 
-    optional<char> peek();
+    optional<Token> peek();
 
-    optional<char> next();
+    optional<Token> next();
 
 private:
     char const* chars;

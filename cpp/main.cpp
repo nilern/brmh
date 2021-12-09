@@ -10,7 +10,7 @@ int main (int argc, char** argv) {
         while (true) {
             const auto c = tokens.next();
             if (c) {
-                std::cout << c.value() << ", ";
+                std::cout << *c.value().chars << ", ";
             } else {
                 break;
             }

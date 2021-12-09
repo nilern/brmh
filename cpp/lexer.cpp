@@ -4,14 +4,21 @@ namespace brmh {
 
 Lexer::Lexer(const char* chars) : chars(chars) {}
 
-optional<char> Lexer::peek() {
-    return *chars ? optional(*chars) : optional<char>();
+optional<Lexer::Token> Lexer::peek() {
+    switch (*chars) {
+    case '\0': return optional<Lexer::Token>();
+
+    case '{': return optional(Lexer::Token {Lexer::Token::Type::LBRACE, chars});
+    case '}': return optional(Lexer::Token {Lexer::Token::Type::RBRACE, chars});
+
+    default: return optional<Lexer::Token>();
+    }
 }
 
-optional<char> Lexer::next() {
-    const optional<char> c = peek();
+optional<Lexer::Token> Lexer::next() {
+    const auto token = peek();
     ++chars;
-    return c;
+    return token;
 }
 
 } // namespace brmh
