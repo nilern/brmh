@@ -8,6 +8,14 @@ optional<Lexer::Token> Lexer::peek() {
     switch (*chars) {
     case '\0': return optional<Lexer::Token>();
 
+    case ',': return optional(Lexer::Token {Lexer::Token::Type::COMMA, chars});
+    case ';': return optional(Lexer::Token {Lexer::Token::Type::SEMICOLON, chars});
+
+    case '.': return optional(Lexer::Token {Lexer::Token::Type::DOT, chars});
+
+    case '=': return optional(Lexer::Token {Lexer::Token::Type::EQUALS, chars});
+    case ':': return optional(Lexer::Token {Lexer::Token::Type::COLON, chars});
+
     case '(': return optional(Lexer::Token {Lexer::Token::Type::LPAREN, chars});
     case ')': return optional(Lexer::Token {Lexer::Token::Type::RPAREN, chars});
     case '[': return optional(Lexer::Token {Lexer::Token::Type::LBRACKET, chars});
