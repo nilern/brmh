@@ -18,7 +18,8 @@ struct Lexer {
             LPAREN, RPAREN, LBRACKET, RBRACKET, LBRACE, RBRACE,
             COMMA, SEMICOLON,
             DOT,
-            EQUALS, COLON
+            EQUALS, COLON,
+            INT
         };
 
         void print(std::ostream& out) const;
@@ -37,6 +38,8 @@ struct Lexer {
     optional<Token> next();
 
 private:
+    optional<Token> lex_int();
+
     char const* chars_;
     Pos pos_;
 };

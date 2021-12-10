@@ -36,14 +36,33 @@ optional<Lexer::Token> Lexer::peek() {
     case '{': return optional(Lexer::Token {Lexer::Token::Type::LBRACE, chars_, 1, pos_});
     case '}': return optional(Lexer::Token {Lexer::Token::Type::RBRACE, chars_, 1, pos_});
 
-    default: return optional<Lexer::Token>();
+    default:
+        if (isdigit(*chars_)) {
+            return lex_int();
+        } else {
+            return optional<Lexer::Token>();
+        }
     }
+}
+
+optional<Lexer::Token> Lexer::lex_int() {
+    uintptr_t size = 0;
+
+    for (const char* c = chars_; isdigit(*c); ++c) {
+        ++size;
+    }
+
+    return optional(Lexer::Token {Lexer::Token::Type::INT, chars_, size, pos_});
 }
 
 optional<Lexer::Token> Lexer::next() {
     const auto token = peek();
-    ++chars_;
-    pos_ = Pos(pos_.filename(), pos_.index() + 1);
+
+    if (token) {
+        chars_ += token->size;
+        pos_ = Pos(pos_.filename(), pos_.index() + token->size);
+    }
+
     return token;
 }
 
