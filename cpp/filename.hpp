@@ -11,7 +11,7 @@ struct Filename {
     static Filename create(const char* chars);
 
 private:
-    Filename(const char* chars);
+    explicit Filename(const char* chars);
 
     char const* const chars_;
 };
