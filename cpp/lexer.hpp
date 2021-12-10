@@ -1,7 +1,11 @@
 #ifndef BRMH_LEXER_HPP
 #define BRMH_LEXER_HPP
 
+#include <cstdint>
 #include <optional>
+
+#include "filename.hpp"
+#include "pos.hpp"
 
 namespace brmh {
 
@@ -18,16 +22,20 @@ struct Lexer {
 
         const Type typ;
         const char* chars;
+        const Pos pos;
     };
 
-    Lexer(const char* chars);
+    Lexer(const Filename filename, const char* chars);
+    Lexer() = delete;
 
     optional<Token> peek();
 
     optional<Token> next();
 
 private:
-    char const* chars;
+    const Filename filename_;
+    char const* chars_;
+    uintptr_t index_;
 };
 
 } // namespace brmh

@@ -2,10 +2,12 @@
 #include <optional>
 
 #include "lexer.cpp"
+#include "filename.cpp"
+#include "pos.cpp"
 
 int main (int argc, char** argv) {
     if (argc > 1) {
-        brmh::Lexer tokens(argv[1]);
+        brmh::Lexer tokens(brmh::Filename::create("<CLI arg>"), argv[1]);
 
         while (true) {
             const auto c = tokens.next();

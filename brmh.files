@@ -1,6 +1,10 @@
 LICENSE
 README.md
 build.sh
+cpp/filename.cpp
+cpp/filename.hpp
 cpp/lexer.cpp
 cpp/lexer.hpp
 cpp/main.cpp
+cpp/pos.cpp
+cpp/pos.hpp
