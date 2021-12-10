@@ -8,3 +8,4 @@ cpp/lexer.hpp
 cpp/main.cpp
 cpp/pos.cpp
 cpp/pos.hpp
+example/identity.brmh
