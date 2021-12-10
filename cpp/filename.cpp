@@ -13,4 +13,6 @@ Filename::~Filename() {
 
 Filename Filename::create(const char* chars) { return Filename(chars); }
 
+const char* Filename::c_str() const { return chars_; }
+
 } // namespace brmh

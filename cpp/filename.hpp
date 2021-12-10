@@ -10,10 +10,12 @@ struct Filename {
 
     static Filename create(const char* chars);
 
+    const char* c_str() const;
+
 private:
     explicit Filename(const char* chars);
 
-    char const* const chars_;
+    char const* chars_;
 };
 
 } // namespace brmh

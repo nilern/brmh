@@ -3,6 +3,7 @@
 
 #include <cstdint>
 #include <optional>
+#include <ostream>
 
 #include "filename.hpp"
 #include "pos.hpp"
@@ -20,8 +21,11 @@ struct Lexer {
             EQUALS, COLON
         };
 
+        void print(std::ostream& out) const;
+
         const Type typ;
-        const char* chars;
+        const char* const chars;
+        const uintptr_t size;
         const Pos pos;
     };
 
@@ -33,9 +37,8 @@ struct Lexer {
     optional<Token> next();
 
 private:
-    const Filename filename_;
     char const* chars_;
-    uintptr_t index_;
+    Pos pos_;
 };
 
 } // namespace brmh

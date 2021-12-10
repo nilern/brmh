@@ -12,12 +12,12 @@ int main (int argc, char** argv) {
         while (true) {
             const auto c = tokens.next();
             if (c) {
-                std::cout << *c.value().chars << ", ";
+                c.value().print(std::cout);
+                std::cout << std::endl;
             } else {
                 break;
             }
         }
-        std::cout << std::endl;
 
         return EXIT_SUCCESS;
     } else {

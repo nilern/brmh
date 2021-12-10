@@ -12,4 +12,8 @@ Filename Pos::filename() const { return filename_; }
 
 uintptr_t Pos::index() const { return index_; }
 
+void Pos::print(std::ostream& out) const {
+    out << filename_.c_str() << " @ " << index_;
+}
+
 } // namespace brmh

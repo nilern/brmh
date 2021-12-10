@@ -2,6 +2,7 @@
 #define BRMH_POS_H
 
 #include <cstdint>
+#include <ostream>
 
 #include "filename.hpp"
 
@@ -14,6 +15,8 @@ struct Pos {
 
     Filename filename() const;
     uintptr_t index() const;
+
+    void print(std::ostream& out) const;
 
 private:
     Filename filename_;
