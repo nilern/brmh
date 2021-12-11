@@ -2,6 +2,8 @@ LICENSE
 README.md
 Doxyfile
 build.sh
+cpp/ast.cpp
+cpp/ast.hpp
 cpp/filename.cpp
 cpp/filename.hpp
 cpp/lexer.cpp
@@ -11,6 +13,8 @@ cpp/name.cpp
 cpp/name.hpp
 cpp/pos.cpp
 cpp/pos.hpp
+cpp/span.cpp
+cpp/span.hpp
 cpp/src.cpp
 cpp/src.hpp
 example/identity.brmh
