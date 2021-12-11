@@ -19,7 +19,8 @@ struct Lexer {
             COMMA, SEMICOLON,
             DOT,
             EQUALS, COLON,
-            INT
+            INT,
+            ID
         };
 
         void print(std::ostream& out) const;
@@ -38,6 +39,7 @@ struct Lexer {
     optional<Token> next();
 
 private:
+    optional<Token> lex_id();
     optional<Token> lex_int();
 
     char const* chars_;

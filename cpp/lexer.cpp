@@ -37,12 +37,24 @@ optional<Lexer::Token> Lexer::peek() {
     case '}': return optional(Lexer::Token {Lexer::Token::Type::RBRACE, chars_, 1, pos_});
 
     default:
-        if (isdigit(*chars_)) {
+        if (isalpha(*chars_)) {
+            return lex_id();
+        } else if (isdigit(*chars_)) {
             return lex_int();
         } else {
             return optional<Lexer::Token>();
         }
     }
+}
+
+optional<Lexer::Token> Lexer::lex_id() {
+    uintptr_t size = 0;
+
+    for (const char* c = chars_; isalpha(*c); ++c) {
+        ++size;
+    }
+
+    return optional(Lexer::Token {Lexer::Token::Type::ID, chars_, size, pos_});
 }
 
 optional<Lexer::Token> Lexer::lex_int() {
