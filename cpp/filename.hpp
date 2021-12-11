@@ -5,16 +5,13 @@
 namespace brmh {
 
 struct Filename {
+    explicit Filename(const char* chars);
     Filename() = delete;
     ~Filename();
-
-    static Filename create(const char* chars);
 
     const char* c_str() const;
 
 private:
-    explicit Filename(const char* chars);
-
     const char* chars_;
 };
 

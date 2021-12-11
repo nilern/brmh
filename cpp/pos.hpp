@@ -10,7 +10,6 @@ namespace brmh {
 
 struct Pos {
     Pos(const Filename filename, const uintptr_t index);
-    explicit Pos(const Filename filename);
     Pos() = delete;
 
     Filename filename() const;

@@ -9,12 +9,12 @@
 
 int main (int argc, char** argv) {
     if (argc == 2) {
-        brmh::Src src = strcmp(argv[1], "-") == 0
+        const brmh::Src src = strcmp(argv[1], "-") == 0
                 ? brmh::Src::stdin()
                 : brmh::Src::cli_arg(argv[1]);
 
         brmh::Lexer tokens(src);
-        for (auto tok = std::optional<brmh::Lexer::Token>(); (tok = tokens.next());) {
+        for (std::optional<brmh::Lexer::Token> tok; (tok = tokens.next());) {
             tok.value().print(std::cout);
             std::cout << std::endl;
         }

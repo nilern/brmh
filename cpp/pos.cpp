@@ -4,8 +4,6 @@
 
 namespace brmh {
 
-Pos::Pos(const Filename filename) : Pos(filename, 0) {}
-
 Pos::Pos(const Filename filename, const uintptr_t index) : filename_(filename), index_(index) {}
 
 Filename Pos::filename() const { return filename_; }
