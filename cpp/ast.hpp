@@ -8,12 +8,18 @@ namespace brmh::ast {
 
 struct Node {
     explicit Node(Span pos);
+    virtual ~Node();
+
+    virtual void print(std::ostream& dest) const = 0;
 
     Span span;
 };
 
 struct Id : Node {
     Id(Span pos, const Name* name);
+    ~Id();
+
+    virtual void print(std::ostream& dest) const override;
 
     const Name* name;
 };

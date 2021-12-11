@@ -34,8 +34,8 @@ struct Lexer {
     explicit Lexer(const Src& src);
     Lexer() = delete;
 
+    Pos pos() const;
     optional<Token> peek();
-
     optional<Token> next();
 
 private:

@@ -17,6 +17,8 @@ void Lexer::Token::print(std::ostream& out) const {
 
 Lexer::Lexer(const Src& src) : chars_(src.source_code()), pos_(Pos(src.filename(), 0)) {}
 
+Pos Lexer::pos() const { return pos_; }
+
 optional<Lexer::Token> Lexer::peek() {
     while (true) {
         switch (*chars_) {

@@ -2,7 +2,6 @@
 #include <sstream>
 #include <optional>
 
-#include "lexer.cpp"
 #include "filename.cpp"
 #include "pos.cpp"
 #include "src.cpp"
@@ -10,6 +9,9 @@
 #include "name.cpp"
 
 #include "ast.cpp"
+
+#include "lexer.cpp"
+#include "parser.cpp"
 
 int main (int argc, char** argv) {
     if (argc == 2) {
@@ -22,6 +24,21 @@ int main (int argc, char** argv) {
             tok.value().print(std::cout);
             std::cout << std::endl;
         }
+
+        std::cout << std::endl;
+
+        brmh::Names names;
+
+        brmh::Parser parser(brmh::Lexer(src), names);
+        std::optional<brmh::ast::Node*> expr = parser.expr();
+        if (!expr) {
+            std::cerr << "Parse error" << std::endl;
+            return EXIT_FAILURE;
+        }
+        (*expr)->print(std::cout);
+        std::cout << std::endl;
+
+        delete *expr;
 
         return EXIT_SUCCESS;
     } else {

@@ -41,8 +41,8 @@ struct Names {
     Names(const Names&) = delete;
     Names& operator=(const Names&) = delete;
 
-    const Name* sourced(const char* chars);
-    const Name* fresh(const char* chars);
+    const Name* sourced(const char* chars, std::size_t size);
+    const Name* fresh(const char* chars, std::size_t size);
     const Name* fresh();
     const Name* freshen(const Name* name);
 

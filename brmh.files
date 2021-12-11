@@ -11,6 +11,8 @@ cpp/lexer.hpp
 cpp/main.cpp
 cpp/name.cpp
 cpp/name.hpp
+cpp/parser.cpp
+cpp/parser.hpp
 cpp/pos.cpp
 cpp/pos.hpp
 cpp/span.cpp

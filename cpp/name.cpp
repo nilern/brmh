@@ -10,19 +10,19 @@ Names::Names() : counter_(0), by_chars_() {}
 
 Names::~Names() { /* TODO: Free all names (in constant time!) */ }
 
-const Name* Names::sourced(const char* chars) {
+const Name* Names::sourced(const char* chars, std::size_t size) {
     auto it = by_chars_.find(chars);
     if (it != by_chars_.end()) {
         return it->second;
     } else {
-        const Name* name = fresh(chars);
+        const Name* name = fresh(chars, size);
         by_chars_.insert({name->chars_, name});
         return name;
     }
 }
 
-const Name* Names::fresh(const char* chars) {
-    return new Name(counter_++, false, strdup(chars));
+const Name* Names::fresh(const char* chars, std::size_t size) {
+    return new Name(counter_++, false, strndup(chars, size));
 }
 
 const Name* Names::fresh() {
