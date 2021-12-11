@@ -18,14 +18,9 @@ int main (int argc, char** argv) {
         }
 
         brmh::Lexer tokens(brmh::Filename::create("<CLI arg>"), input.c_str());
-        while (true) {
-            const auto tok = tokens.next();
-            if (tok) {
-                tok.value().print(std::cout);
-                std::cout << std::endl;
-            } else {
-                break;
-            }
+        for (auto tok = std::optional<brmh::Lexer::Token>(); (tok = tokens.next());) {
+            tok.value().print(std::cout);
+            std::cout << std::endl;
         }
 
         return EXIT_SUCCESS;

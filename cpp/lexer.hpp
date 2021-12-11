@@ -24,10 +24,10 @@ struct Lexer {
 
         void print(std::ostream& out) const;
 
-        const Type typ;
-        const char* const chars;
-        const uintptr_t size;
-        const Pos pos;
+        Type typ;
+        const char* chars;
+        uintptr_t size;
+        Pos pos;
     };
 
     Lexer(const Filename filename, const char* chars);

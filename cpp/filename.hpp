@@ -15,7 +15,7 @@ struct Filename {
 private:
     explicit Filename(const char* chars);
 
-    char const* chars_;
+    const char* chars_;
 };
 
 } // namespace brmh
