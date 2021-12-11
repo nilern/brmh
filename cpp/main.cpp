@@ -6,6 +6,7 @@
 #include "filename.cpp"
 #include "pos.cpp"
 #include "src.cpp"
+#include "name.cpp"
 
 int main (int argc, char** argv) {
     if (argc == 2) {
