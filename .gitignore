@@ -31,3 +31,7 @@ brmh
 *.exe
 *.out
 *.app
+
+# Generated documentation
+/doxygened
+
