@@ -18,31 +18,37 @@ void Lexer::Token::print(std::ostream& out) const {
 Lexer::Lexer(const Filename filename, const char* chars) : chars_(chars), pos_(Pos(filename, 0)) {}
 
 optional<Lexer::Token> Lexer::peek() {
-    switch (*chars_) {
-    case '\0': return optional<Lexer::Token>();
+    while (true) {
+        switch (*chars_) {
+        case '\0': return optional<Lexer::Token>();
 
-    case ',': return optional(Lexer::Token {Lexer::Token::Type::COMMA, chars_, 1, pos_});
-    case ';': return optional(Lexer::Token {Lexer::Token::Type::SEMICOLON, chars_, 1, pos_});
+        case ',': return optional(Lexer::Token {Lexer::Token::Type::COMMA, chars_, 1, pos_});
+        case ';': return optional(Lexer::Token {Lexer::Token::Type::SEMICOLON, chars_, 1, pos_});
 
-    case '.': return optional(Lexer::Token {Lexer::Token::Type::DOT, chars_, 1, pos_});
+        case '.': return optional(Lexer::Token {Lexer::Token::Type::DOT, chars_, 1, pos_});
 
-    case '=': return optional(Lexer::Token {Lexer::Token::Type::EQUALS, chars_, 1, pos_});
-    case ':': return optional(Lexer::Token {Lexer::Token::Type::COLON, chars_, 1, pos_});
+        case '=': return optional(Lexer::Token {Lexer::Token::Type::EQUALS, chars_, 1, pos_});
+        case ':': return optional(Lexer::Token {Lexer::Token::Type::COLON, chars_, 1, pos_});
 
-    case '(': return optional(Lexer::Token {Lexer::Token::Type::LPAREN, chars_, 1, pos_});
-    case ')': return optional(Lexer::Token {Lexer::Token::Type::RPAREN, chars_, 1, pos_});
-    case '[': return optional(Lexer::Token {Lexer::Token::Type::LBRACKET, chars_, 1, pos_});
-    case ']': return optional(Lexer::Token {Lexer::Token::Type::RBRACKET, chars_, 1, pos_});
-    case '{': return optional(Lexer::Token {Lexer::Token::Type::LBRACE, chars_, 1, pos_});
-    case '}': return optional(Lexer::Token {Lexer::Token::Type::RBRACE, chars_, 1, pos_});
+        case '(': return optional(Lexer::Token {Lexer::Token::Type::LPAREN, chars_, 1, pos_});
+        case ')': return optional(Lexer::Token {Lexer::Token::Type::RPAREN, chars_, 1, pos_});
+        case '[': return optional(Lexer::Token {Lexer::Token::Type::LBRACKET, chars_, 1, pos_});
+        case ']': return optional(Lexer::Token {Lexer::Token::Type::RBRACKET, chars_, 1, pos_});
+        case '{': return optional(Lexer::Token {Lexer::Token::Type::LBRACE, chars_, 1, pos_});
+        case '}': return optional(Lexer::Token {Lexer::Token::Type::RBRACE, chars_, 1, pos_});
 
-    default:
-        if (isalpha(*chars_)) {
-            return lex_id();
-        } else if (isdigit(*chars_)) {
-            return lex_int();
-        } else {
-            return optional<Lexer::Token>();
+        default:
+            if (isspace(*chars_)) {
+                ++chars_;
+                pos_ = Pos(pos_.filename(), pos_.index() + 1);
+                continue;
+            } else if (isalpha(*chars_)) {
+                return lex_id();
+            } else if (isdigit(*chars_)) {
+                return lex_int();
+            } else {
+                return optional<Lexer::Token>();
+            }
         }
     }
 }
