@@ -5,7 +5,7 @@
 #include <optional>
 #include <ostream>
 
-#include "filename.hpp"
+#include "src.hpp"
 #include "pos.hpp"
 
 namespace brmh {
@@ -31,7 +31,7 @@ struct Lexer {
         Pos pos;
     };
 
-    Lexer(const Filename filename, const char* chars);
+    explicit Lexer(const Src& src);
     Lexer() = delete;
 
     optional<Token> peek();
