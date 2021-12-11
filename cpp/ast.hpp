@@ -9,7 +9,7 @@ namespace brmh::ast {
 struct Node {
     explicit Node(Span pos);
 
-    Span pos;
+    Span span;
 };
 
 struct Id : Node {

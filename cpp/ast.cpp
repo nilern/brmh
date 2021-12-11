@@ -2,7 +2,7 @@
 
 namespace brmh::ast {
 
-Node::Node(Pos p) : pos(p) {}
+Node::Node(Span sp) : span(sp) {}
 
 Id::Id(Span span, const Name* n) : Node(span), name(n) {}
 

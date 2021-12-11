@@ -9,7 +9,7 @@
 #include "span.cpp"
 #include "name.cpp"
 
-#include "ast.hpp"
+#include "ast.cpp"
 
 int main (int argc, char** argv) {
     if (argc == 2) {
