@@ -2,48 +2,61 @@
 #define BRMH_NAME_HPP
 
 #include <string>
-#include <unordered_set>
+#include <unordered_map>
 
 namespace brmh {
 
-struct Name;
-
-struct Names {
-    Name create(const char* chars);
-
-private:
-    struct RawName {
-        struct Hash {
-            std::size_t operator()(const RawName& raw) const noexcept;
-        };
-
-        bool operator==(const RawName& other) const;
-
-        const char* chars_;
-    };
-
-    std::unordered_set<RawName, RawName::Hash> names_; // FIXME: thread safety
-};
+struct Names;
 
 struct Name {
     Name() = delete;
+    Name(const Name&) = delete;
+    Name(const Name&&) = delete;
+    Name& operator=(const Name&) = delete;
+    Name& operator=(const Name&&) = delete;
 
-    bool operator==(const Name& other) const noexcept;
-    std::size_t hash() const noexcept;
+    ~Name();
+
+    void print(std::ostream& out) const;
 
 private:
     friend struct Names;
 
-    explicit Name(const char* chars);
+    struct EqChars {
+        bool operator()(const char* chars1, const char* chars2) const noexcept;
+    };
 
+    struct CharsHash {
+        std::size_t operator()(const char* raw) const noexcept;
+    };
+
+    Name(std::size_t index, bool freshened, const char* chars);
+
+    std::size_t index_;
+    bool freshened_;
     const char* chars_;
 };
 
-} // namespace brmh
+struct Names {
+    Names(const Names&) = delete;
+    Names& operator=(const Names&) = delete;
 
-template<>
-struct std::hash<brmh::Name> {
-    std::size_t operator()(brmh::Name const& s) const noexcept { return s.hash(); }
+    const Name* sourced(const char* chars);
+    const Name* fresh(const char* chars);
+    const Name* fresh();
+    const Name* freshen(const Name* name);
+
+    Names();
+    ~Names();
+
+    // TODO: Some sort of GC between compiler passes?
+
+private:
+    // FIXME: Thread safety:
+    std::size_t counter_;
+    std::unordered_map<const char*, const Name*, Name::CharsHash, Name::EqChars> by_chars_;
 };
+
+} // namespace brmh
 
 #endif // BRMH_NAME_HPP

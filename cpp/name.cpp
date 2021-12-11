@@ -4,27 +4,54 @@
 
 namespace brmh {
 
-Name Names::create(const char* chars) {
-    auto it = names_.find(Names::RawName{chars});
-    if (it == names_.end()) {
-        it = names_.emplace(strdup(chars)).first;
+// # Names
+
+Names::Names() : counter_(0), by_chars_() {}
+
+Names::~Names() { /* TODO: Free all names (in constant time!) */ }
+
+const Name* Names::sourced(const char* chars) {
+    auto it = by_chars_.find(chars);
+    if (it != by_chars_.end()) {
+        return it->second;
+    } else {
+        const Name* name = fresh(chars);
+        by_chars_.insert({name->chars_, name});
+        return name;
     }
-
-    return Name(it->chars_);
 }
 
-bool Names::RawName::operator==(const RawName &other) const {
-    return strcmp(chars_, other.chars_) == 0;
+const Name* Names::fresh(const char* chars) {
+    return new Name(counter_++, false, strdup(chars));
 }
 
-std::size_t Names::RawName::Hash::operator()(const RawName &raw) const noexcept {
-    return std::hash<std::string_view>()(std::string_view(raw.chars_, strlen(raw.chars_))); // OPTIMIZE
+const Name* Names::fresh() {
+    return new Name(counter_++, true, "");
 }
 
-Name::Name(const char* chars) : chars_(chars) {}
+const Name* Names::freshen(const Name* name) {
+    return new Name(counter_++, true, name->chars_);
+}
 
-bool Name::operator==(const Name& other) const noexcept { return chars_ == other.chars_; }
+// # Name
 
-std::size_t Name::hash() const noexcept { return std::hash<const char*>()(chars_); }
+Name::Name(std::size_t index, bool freshened, const char* chars)
+    : index_(index), freshened_(freshened), chars_(chars) {}
+
+Name::~Name() {
+    if (!freshened_) {
+        delete chars_;
+    }
+}
+
+void Name::print(std::ostream& out) const { out << chars_ << '$' << index_; }
+
+bool Name::EqChars::operator()(const char* chars1, const char* chars2) const noexcept {
+    return strcmp(chars1, chars2) == 0;
+}
+
+std::size_t Name::CharsHash::operator()(const char* chars) const noexcept {
+    return std::hash<std::string_view>()(std::string_view(chars, strlen(chars))); // OPTIMIZE: two string traversals
+}
 
 } // namespace brmh
