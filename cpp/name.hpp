@@ -4,47 +4,37 @@
 #include <string>
 #include <unordered_map>
 
+#include "util.hpp"
+
 namespace brmh {
 
 struct Names;
 
 struct Name {
-    Name() = delete;
-    Name(const Name&) = delete;
-    Name(const Name&&) = delete;
-    Name& operator=(const Name&) = delete;
-    Name& operator=(const Name&&) = delete;
+    struct Hash {
+        std::size_t operator()(Name name) const noexcept;
+    };
 
-    ~Name();
+    bool operator==(Name const& other) const;
 
-    void print(std::ostream& out) const;
+    void print(Names const& names, std::ostream& dest) const;
 
 private:
     friend struct Names;
 
-    struct EqChars {
-        bool operator()(const char* chars1, const char* chars2) const noexcept;
-    };
+    explicit Name(uintptr_t id);
 
-    struct CharsHash {
-        std::size_t operator()(const char* raw) const noexcept;
-    };
-
-    Name(std::size_t index, bool freshened, const char* chars);
-
-    std::size_t index_;
-    bool freshened_;
-    const char* chars_;
+    uintptr_t id_;
 };
 
 struct Names {
     Names(const Names&) = delete;
     Names& operator=(const Names&) = delete;
 
-    const Name* sourced(const char* chars, std::size_t size);
-    const Name* fresh(const char* chars, std::size_t size);
-    const Name* fresh();
-    const Name* freshen(const Name* name);
+    Name sourced(const char* chars, std::size_t size);
+    Name fresh(const char* chars, std::size_t size);
+    Name fresh();
+    Name freshen(Name name);
 
     Names();
     ~Names();
@@ -52,9 +42,15 @@ struct Names {
     // TODO: Some sort of GC between compiler passes?
 
 private:
+    friend struct Name;
+
+    void print_name(Name name, std::ostream& dest) const;
+
     // FIXME: Thread safety:
+
     std::size_t counter_;
-    std::unordered_map<const char*, const Name*, Name::CharsHash, Name::EqChars> by_chars_;
+    std::unordered_map<Name, const char*, Name::Hash> name_chars_;
+    std::unordered_map<const char*, Name, CStringHash, CStringEq> by_chars_;
 };
 
 } // namespace brmh

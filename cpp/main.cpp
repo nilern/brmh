@@ -2,6 +2,7 @@
 #include <sstream>
 #include <optional>
 
+#include "util.cpp"
 #include "filename.cpp"
 #include "pos.cpp"
 #include "src.cpp"
@@ -35,7 +36,7 @@ int main (int argc, char** argv) {
             std::cerr << "Parse error" << std::endl;
             return EXIT_FAILURE;
         }
-        (*expr)->print(std::cout);
+        (*expr)->print(names, std::cout);
         std::cout << std::endl;
 
         delete *expr;

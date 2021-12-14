@@ -10,10 +10,10 @@ Node::~Node() {}
 
 // # Id
 
-Id::Id(Span span, const Name* n) : Node(span), name(n) {}
+Id::Id(Span span, Name n) : Node(span), name(n) {}
 
 Id::~Id() {}
 
-void Id::print(std::ostream& dest) const { name->print(dest); }
+void Id::print(Names const& names, std::ostream& dest) const { name.print(names, dest); }
 
 } // namespace brmh

@@ -1,57 +1,65 @@
 #include "name.hpp"
 
 #include <cstring>
+#include <ostream>
 
 namespace brmh {
 
 // # Names
 
-Names::Names() : counter_(0), by_chars_() {}
+Names::Names() : counter_(0), name_chars_(), by_chars_() {}
 
-Names::~Names() { /* TODO: Free all names (in constant time!) */ }
+Names::~Names() { /* TODO: Free all C strings */ }
 
-const Name* Names::sourced(const char* chars, std::size_t size) {
+Name Names::sourced(const char* chars, std::size_t size) {
     auto it = by_chars_.find(chars);
     if (it != by_chars_.end()) {
         return it->second;
     } else {
-        const Name* name = fresh(chars, size);
-        by_chars_.insert({name->chars_, name});
+        const Name name = fresh();
+        const char* const new_chars = strndup(chars, size);
+        name_chars_.insert({name, new_chars});
+        by_chars_.insert({new_chars, name});
         return name;
     }
 }
 
-const Name* Names::fresh(const char* chars, std::size_t size) {
-    return new Name(counter_++, false, strndup(chars, size));
+Name Names::fresh(const char* chars, std::size_t size) {
+    const Name name = fresh();
+    name_chars_.insert({name, strndup(chars, size)});
+    return name;
 }
 
-const Name* Names::fresh() {
-    return new Name(counter_++, true, "");
+Name Names::fresh() { return Name(counter_++); }
+
+Name Names::freshen(Name name) {
+    const Name new_name = fresh();
+
+    auto it = name_chars_.find(name);
+    if (it != name_chars_.end()) {
+        name_chars_.insert({new_name, it->second});
+    }
+
+    return new_name;
 }
 
-const Name* Names::freshen(const Name* name) {
-    return new Name(counter_++, true, name->chars_);
+void Names::print_name(Name name, std::ostream& dest) const {
+    auto it = name_chars_.find(name);
+    if (it != name_chars_.end()) {
+        dest << it->second;
+    }
+
+    dest << '$' << name.id_;
 }
 
 // # Name
 
-Name::Name(std::size_t index, bool freshened, const char* chars)
-    : index_(index), freshened_(freshened), chars_(chars) {}
+std::size_t Name::Hash::operator()(Name name) const noexcept { return std::hash<std::uintptr_t>()(name.id_); }
 
-Name::~Name() {
-    if (!freshened_) {
-        delete chars_;
-    }
-}
+Name::Name(uintptr_t id) : id_(id) {}
 
-void Name::print(std::ostream& out) const { out << chars_ << '$' << index_; }
+bool Name::operator==(const Name& other) const { return id_ == other.id_; }
 
-bool Name::EqChars::operator()(const char* chars1, const char* chars2) const noexcept {
-    return strcmp(chars1, chars2) == 0;
-}
-
-std::size_t Name::CharsHash::operator()(const char* chars) const noexcept {
-    return std::hash<std::string_view>()(std::string_view(chars, strlen(chars))); // OPTIMIZE: two string traversals
-}
+void Name::print(Names const& names, std::ostream& dest) const { names.print_name(*this, dest); }
 
 } // namespace brmh

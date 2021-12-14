@@ -19,4 +19,6 @@ cpp/span.cpp
 cpp/span.hpp
 cpp/src.cpp
 cpp/src.hpp
+cpp/util.cpp
+cpp/util.hpp
 example/identity.brmh

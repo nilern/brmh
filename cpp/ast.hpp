@@ -10,18 +10,18 @@ struct Node {
     explicit Node(Span pos);
     virtual ~Node();
 
-    virtual void print(std::ostream& dest) const = 0;
+    virtual void print(Names const& names, std::ostream& dest) const = 0;
 
     Span span;
 };
 
 struct Id : Node {
-    Id(Span pos, const Name* name);
+    Id(Span pos, Name name);
     ~Id();
 
-    virtual void print(std::ostream& dest) const override;
+    virtual void print(Names const& names, std::ostream& dest) const override;
 
-    const Name* name;
+    Name name;
 };
 
 } // namespace brmh::ast
