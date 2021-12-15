@@ -4,6 +4,8 @@ Doxyfile
 build.sh
 cpp/ast.cpp
 cpp/ast.hpp
+cpp/error.cpp
+cpp/error.hpp
 cpp/filename.cpp
 cpp/filename.hpp
 cpp/lexer.cpp
@@ -19,6 +21,8 @@ cpp/span.cpp
 cpp/span.hpp
 cpp/src.cpp
 cpp/src.hpp
+cpp/type.cpp
+cpp/type.hpp
 cpp/util.cpp
 cpp/util.hpp
 example/identity.brmh

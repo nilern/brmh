@@ -7,6 +7,7 @@
 
 #include "src.hpp"
 #include "pos.hpp"
+#include "error.hpp"
 
 namespace brmh {
 
@@ -20,7 +21,7 @@ struct Lexer {
             DOT,
             EQUALS, COLON,
             INT,
-            ID
+            ID, FUN, INT_T
         };
 
         void print(std::ostream& out) const;
@@ -31,12 +32,23 @@ struct Lexer {
         Pos pos;
     };
 
+    class Error : public BrmhError {
+    public:
+        explicit Error(Pos pos);
+
+        virtual const char* what() const noexcept override;
+
+        Pos pos;
+    };
+
     explicit Lexer(const Src& src);
     Lexer() = delete;
 
     Pos pos() const;
     optional<Token> peek();
+    Token peek_some();
     optional<Token> next();
+    optional<optional<Token>> match(Token::Type type);
 
 private:
     optional<Token> lex_id();

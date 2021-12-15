@@ -50,7 +50,7 @@ private:
 
     std::size_t counter_;
     std::unordered_map<Name, const char*, Name::Hash> name_chars_;
-    std::unordered_map<const char*, Name, CStringHash, CStringEq> by_chars_;
+    std::unordered_map<std::string_view, Name> by_chars_;
 };
 
 } // namespace brmh

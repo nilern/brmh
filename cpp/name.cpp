@@ -12,7 +12,7 @@ Names::Names() : counter_(0), name_chars_(), by_chars_() {}
 Names::~Names() { /* TODO: Free all C strings */ }
 
 Name Names::sourced(const char* chars, std::size_t size) {
-    auto it = by_chars_.find(chars);
+    auto it = by_chars_.find(std::string_view(chars, size));
     if (it != by_chars_.end()) {
         return it->second;
     } else {

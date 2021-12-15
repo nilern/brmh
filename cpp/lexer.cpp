@@ -1,6 +1,16 @@
 #include "lexer.hpp"
 
+#include <cstring>
+
 namespace brmh {
+
+// # Lexer::Error
+
+Lexer::Error::Error(Pos pos_) : BrmhError(), pos(pos_) {}
+
+const char* Lexer::Error::what() const noexcept { return "LexError"; }
+
+// # Lexer
 
 void Lexer::Token::print(std::ostream& out) const {
     out << "<Token ";
@@ -55,6 +65,15 @@ optional<Lexer::Token> Lexer::peek() {
     }
 }
 
+Lexer::Token Lexer::peek_some() {
+    const optional<Token> tok = peek();
+    if (tok) {
+        return tok.value();
+    } else {
+        throw Error(pos());
+    }
+}
+
 optional<Lexer::Token> Lexer::lex_id() {
     uintptr_t size = 0;
 
@@ -62,7 +81,12 @@ optional<Lexer::Token> Lexer::lex_id() {
         ++size;
     }
 
-    return optional(Lexer::Token {Lexer::Token::Type::ID, chars_, size, pos_});
+    const Lexer::Token::Type type = strncmp(chars_, "fun", size) == 0
+            ? Lexer::Token::Type::FUN
+            : strncmp(chars_, "int", size) == 0
+              ? Lexer::Token::Type::INT_T
+              : Lexer::Token::Type::ID;
+    return optional(Lexer::Token {type, chars_, size, pos_});
 }
 
 optional<Lexer::Token> Lexer::lex_int() {
@@ -84,6 +108,23 @@ optional<Lexer::Token> Lexer::next() {
     }
 
     return token;
+}
+
+optional<optional<Lexer::Token>> Lexer::match(Token::Type type) {
+    const auto opt_tok = peek();
+    if (!opt_tok) {
+        return optional<optional<Lexer::Token>>();
+    } else {
+        const auto tok = opt_tok.value();
+        if (tok.typ == type) {
+            chars_ += tok.size;
+            pos_ = Pos(pos_.filename(), pos_.index() + tok.size);
+            return optional(optional(tok));
+        } else {
+            return optional(optional<Lexer::Token>());
+        }
+
+    }
 }
 
 } // namespace brmh
