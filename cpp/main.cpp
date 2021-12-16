@@ -17,6 +17,9 @@
 #include "lexer.cpp"
 #include "parser.cpp"
 
+#include "typeenv.cpp"
+#include "typer.cpp"
+
 // TODO: Memory management (using bumpalo arenas and taking advantage of "IR going through passes" nature)
 
 int main (int argc, char** argv) {
@@ -41,6 +44,9 @@ int main (int argc, char** argv) {
             brmh::Parser parser(brmh::Lexer(src), names, types);
             brmh::ast::Program program = parser.program();
             program.print(names, std::cout);
+
+            brmh::ast::Program typed_program = program.check(types);
+            typed_program.print(names, std::cout);
 
             return EXIT_SUCCESS;
         } catch (const brmh::Lexer::Error& error) {

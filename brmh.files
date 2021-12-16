@@ -23,6 +23,9 @@ cpp/src.cpp
 cpp/src.hpp
 cpp/type.cpp
 cpp/type.hpp
+cpp/typeenv.cpp
+cpp/typeenv.hpp
+cpp/typer.cpp
 cpp/util.cpp
 cpp/util.hpp
 example/identity.brmh

@@ -6,6 +6,7 @@
 #include "span.hpp"
 #include "name.hpp"
 #include "type.hpp"
+#include "typeenv.hpp"
 
 namespace brmh::ast {
 
@@ -15,6 +16,8 @@ struct Param {
     Name name;
     type::Type* type;
 
+    void declare(TypeEnv& env) const;
+
     void print(Names const& names, std::ostream& dest) const;
 };
 
@@ -23,6 +26,9 @@ struct Param {
 struct Expr {
     explicit Expr(Span span);
 
+    virtual std::pair<Expr*, type::Type*> type_of(TypeEnv& env) const = 0;
+    Expr* check(TypeEnv& env, type::Type* type) const;
+
     virtual void print(Names const& names, std::ostream& dest) const = 0;
 
     Span span;
@@ -30,6 +36,8 @@ struct Expr {
 
 struct Id : public Expr {
     Id(Span pos, Name name);
+
+    virtual std::pair<Expr*, type::Type*> type_of(TypeEnv& env) const override;
 
     virtual void print(Names const& names, std::ostream& dest) const override;
 
@@ -43,6 +51,8 @@ struct Const : public Expr {
 struct Int : public Const {
     Int(Span pos, const char* chars, std::size_t size);
 
+    virtual std::pair<Expr*, type::Type*> type_of(TypeEnv& env) const override;
+
     virtual void print(Names const& names, std::ostream& dest) const override;
 
     const char* digits;
@@ -53,6 +63,9 @@ struct Int : public Const {
 struct Def {
     explicit Def(Span span);
 
+    virtual void declare(TypeEnv& env) = 0;
+    virtual Def* check(TypeEnv& env) = 0;
+
     virtual void print(Names const& names, std::ostream& dest) const = 0;
 
     Span span;
@@ -60,6 +73,11 @@ struct Def {
 
 struct FunDef : public Def {
     FunDef(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Expr* body);
+
+    std::vector<type::Type*> domain() const;
+
+    virtual void declare(TypeEnv& env) override;
+    virtual Def* check(TypeEnv& env) override;
 
     virtual void print(Names const& names, std::ostream& dest) const override;
 
@@ -73,6 +91,8 @@ struct FunDef : public Def {
 
 struct Program {
     explicit Program(std::vector<Def*>&& defs);
+
+    Program check(type::Types& types);
 
     void print(Names const& names, std::ostream& dest) const;
 
