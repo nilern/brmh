@@ -6,6 +6,8 @@ cpp/ast.cpp
 cpp/ast.hpp
 cpp/error.cpp
 cpp/error.hpp
+cpp/fast.cpp
+cpp/fast.hpp
 cpp/filename.cpp
 cpp/filename.hpp
 cpp/lexer.cpp

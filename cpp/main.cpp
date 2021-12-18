@@ -17,6 +17,8 @@
 #include "lexer.cpp"
 #include "parser.cpp"
 
+#include "fast.cpp"
+
 #include "typeenv.cpp"
 #include "typer.cpp"
 
@@ -36,7 +38,7 @@ int main (int argc, char** argv) {
                 std::cout << std::endl;
             }
 
-            std::cout << std::endl << std::endl;
+            std::cout << std::endl << "---" << std::endl << std::endl;
 
             brmh::Names names;
             brmh::type::Types types;
@@ -45,7 +47,9 @@ int main (int argc, char** argv) {
             brmh::ast::Program program = parser.program();
             program.print(names, std::cout);
 
-            brmh::ast::Program typed_program = program.check(types);
+            std::cout << "---" << std::endl << std::endl;
+
+            brmh::fast::Program typed_program = program.check(types);
             typed_program.print(names, std::cout);
 
             return EXIT_SUCCESS;

@@ -3,37 +3,40 @@
 #include "type.hpp"
 #include "ast.hpp"
 #include "typeenv.hpp"
+#include "fast.hpp"
 
 namespace brmh {
 
-ast::Program ast::Program::check(type::Types& types) {
+fast::Program ast::Program::check(type::Types& types) {
+    fast::Program program;
     TypeEnv env(types);
 
     for (auto def : defs) {
         def->declare(env);
     }
 
-    std::vector<Def*> typed_defs;
     for (auto def : defs) {
-       typed_defs.push_back(def->check(env));
+       program.push_toplevel(def->check(program, env));
     }
 
-    return ast::Program(std::move(typed_defs));
+    return program;
 }
 
 void ast::FunDef::declare(TypeEnv &env) {
     env.declare(name, env.types().fn(domain(), codomain));
 }
 
-ast::Def* ast::FunDef::check(TypeEnv& parent_env) {
+fast::Def* ast::FunDef::check(fast::Program& program, TypeEnv& parent_env) {
     TypeEnv env = parent_env.push_params();
+    std::vector<fast::Param> new_params;
     for (auto param : params) {
         param.declare(env);
+        new_params.push_back(program.param(param.name, param.type));
     }
 
-    ast::Expr* typed_body = body->check(env, codomain);
+    fast::Expr* typed_body = body->check(program, env, codomain);
 
-    return new FunDef(span, name, std::vector(params), codomain, typed_body);
+    return program.fun_def(span, name, std::move(new_params), codomain, typed_body);
 }
 
 std::vector<type::Type*> ast::FunDef::domain() const {
@@ -48,23 +51,23 @@ void ast::Param::declare(TypeEnv &env) const {
     env.declare(name, type);
 }
 
-std::pair<ast::Expr*, type::Type*> ast::Int::type_of(TypeEnv& env) const {
-    return {new Int(span, digits, strlen(digits)), env.types().get_int()};
+fast::Expr* ast::Int::type_of(fast::Program& program, TypeEnv& env) const {
+    return program.const_int(span, env.types().get_int(), digits, strlen(digits));
 }
 
-std::pair<ast::Expr*, type::Type*> ast::Id::type_of(TypeEnv& env) const {
+fast::Expr* ast::Id::type_of(fast::Program& program, TypeEnv& env) const {
     std::optional<type::Type*> optType = env.find(name);
     if (optType) {
-        return {new Id(span, name), *optType};
+        return program.id(span, *optType, name);
     } else {
         throw type::Error(span);
     }
 }
 
-ast::Expr* ast::Expr::check(TypeEnv& env, type::Type* type) const {
-    std::pair<ast::Expr*, type::Type*> typing = type_of(env);
-    if (typing.second->is_subtype_of(type)) {
-        return typing.first;
+fast::Expr* ast::Expr::check(fast::Program& program, TypeEnv& env, type::Type* type) const {
+    fast::Expr* expr = type_of(program, env);
+    if (expr->type->is_subtype_of(type)) {
+        return expr;
     } else {
         throw type::Error(span);
     }
