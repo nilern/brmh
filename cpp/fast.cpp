@@ -77,14 +77,15 @@ void FunDef::print(Names const& names, std::ostream& dest) const {
 
 Param Program::param(Name name, type::Type* type) { return Param(name, type); }
 
-Id* Program::id(Span span, type::Type* type, Name name) { return new Id(span, type, name); }
+Id* Program::id(Span span, type::Type* type, Name name) {
+    return new(arena_.alloc(sizeof(Id))) Id(span, type, name); }
 
 Int* Program::const_int(Span span, type::Type* type, const char* chars, std::size_t size) {
-    return new Int(span, type, chars, size);
+    return new(arena_.alloc(sizeof(Int))) Int(span, type, chars, size);
 }
 
 FunDef* Program::fun_def(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Expr* body) {
-    return new FunDef(span, name, std::move(params), codomain, body);
+    return new(arena_.alloc(sizeof(FunDef))) FunDef(span, name, std::move(params), codomain, body);
 }
 
 void Program::push_toplevel(Def* def) {

@@ -3,6 +3,7 @@
 #include <optional>
 
 #include "util.cpp"
+#include "bumparena.cpp"
 #include "filename.cpp"
 #include "pos.cpp"
 #include "src.cpp"

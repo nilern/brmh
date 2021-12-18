@@ -1,6 +1,7 @@
 #ifndef BRMH_FAST_HPP
 #define BRMH_FAST_HPP
 
+#include "bumparena.hpp"
 #include "type.hpp"
 
 namespace brmh::fast {
@@ -100,6 +101,9 @@ struct Program {
     void print(Names const& names, std::ostream& dest) const;
 
     std::vector<Def*> defs;
+
+private:
+    BumpArena arena_;
 };
 
 } // namespace brmh

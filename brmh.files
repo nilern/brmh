@@ -4,6 +4,8 @@ Doxyfile
 build.sh
 cpp/ast.cpp
 cpp/ast.hpp
+cpp/bumparena.cpp
+cpp/bumparena.hpp
 cpp/error.cpp
 cpp/error.hpp
 cpp/fast.cpp
