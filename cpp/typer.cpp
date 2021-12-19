@@ -29,9 +29,9 @@ void ast::FunDef::declare(TypeEnv &env) {
 fast::Def* ast::FunDef::check(fast::Program& program, TypeEnv& parent_env) {
     TypeEnv env = parent_env.push_params();
     std::vector<fast::Param> new_params;
-    for (auto param : params) {
+    for (const Param& param : params) {
         param.declare(env);
-        new_params.push_back(program.param(param.name, param.type));
+        new_params.push_back(program.param(param.span, param.name, param.type));
     }
 
     fast::Expr* typed_body = body->check(program, env, codomain);
@@ -41,7 +41,7 @@ fast::Def* ast::FunDef::check(fast::Program& program, TypeEnv& parent_env) {
 
 std::vector<type::Type*> ast::FunDef::domain() const {
     std::vector<type::Type*> res;
-    for (const auto param : params) {
+    for (const Param& param : params) {
         res.push_back(param.type);
     }
     return res;

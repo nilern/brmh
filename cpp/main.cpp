@@ -23,6 +23,10 @@
 #include "typeenv.cpp"
 #include "typer.cpp"
 
+#include "hossa.cpp"
+
+#include "to_hossa.cpp"
+
 // TODO: Memory management (using bumpalo arenas and taking advantage of "IR going through passes" nature)
 
 int main (int argc, char** argv) {
@@ -32,7 +36,6 @@ int main (int argc, char** argv) {
                 : brmh::Src::cli_arg(argv[1]);
 
         try {
-
             brmh::Lexer tokens(src);
             for (std::optional<brmh::Lexer::Token> tok; (tok = tokens.next());) {
                 tok.value().print(std::cout);
@@ -52,6 +55,11 @@ int main (int argc, char** argv) {
 
             brmh::fast::Program typed_program = program.check(types);
             typed_program.print(names, std::cout);
+
+            std::cout << "---" << std::endl << std::endl;
+
+            brmh::hossa::Program hossa_program = typed_program.to_hossa(names);
+            hossa_program.print(names, std::cout);
 
             return EXIT_SUCCESS;
         } catch (const brmh::Lexer::Error& error) {

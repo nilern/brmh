@@ -88,10 +88,12 @@ ast::FunDef* Parser::parse_fundef() {
 }
 
 ast::Param Parser::parse_param() {
+    const Pos start_pos = lexer_.pos();
     const auto name = parse_id();
     lexer_.match(Lexer::Token::Type::COLON); // Discard ':'
     const auto type = parse_type();
-    return ast::Param{name, type};
+    const Pos end_pos = lexer_.pos();
+    return ast::Param{Span{start_pos, end_pos}, name, type};
 }
 
 ast::Expr* Parser::expr() {

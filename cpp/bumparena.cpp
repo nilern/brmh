@@ -4,17 +4,6 @@ namespace brmh {
 
 BumpArena::BumpArena() : bumpers_(), current_() {}
 
-void* BumpArena::alloc(std::size_t size) {
-    void* allocation = current_.alloc(size);
-    if (allocation) {
-        return allocation;
-    } else {
-        bumpers_.push_back(std::move(current_));
-        current_ = Bumper();
-        return current_.alloc(size);
-    }
-}
-
 BumpArena::Bumper::Bumper() {
     start = new char[SIZE];
     free = start + SIZE;

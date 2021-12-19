@@ -14,6 +14,7 @@ namespace brmh::ast {
 // # Param
 
 struct Param {
+    Span span;
     Name name;
     type::Type* type;
 

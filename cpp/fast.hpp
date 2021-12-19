@@ -3,6 +3,7 @@
 
 #include "bumparena.hpp"
 #include "type.hpp"
+#include "hossa.hpp"
 
 namespace brmh::fast {
 
@@ -13,19 +14,22 @@ struct Program;
 struct Param {
     void print(Names const& names, std::ostream& dest) const;
 
+    Span span;
     Name name;
     type::Type* type;
 
 private:
     friend struct Program;
 
-    Param(Name name, type::Type* type);
+    Param(Span span, Name name, type::Type* type);
 };
 
 // # Exprs
 
 struct Expr {
     virtual void print(Names const& names, std::ostream& dest) const = 0;
+
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const = 0;
 
     Span span;
     type::Type* type;
@@ -36,6 +40,8 @@ protected:
 
 struct Id : public Expr {
     virtual void print(Names const& names, std::ostream& dest) const override;
+
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
 
     Name name;
 
@@ -53,6 +59,8 @@ protected:
 struct Int : public Const {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
+
     const char* digits;
 
 private:
@@ -66,6 +74,8 @@ private:
 struct Def {
     virtual void print(Names const& names, std::ostream& dest) const = 0;
 
+    virtual void to_hossa(hossa::Builder& builder) const = 0;
+
     Span span;
 
 protected:
@@ -74,6 +84,8 @@ protected:
 
 struct FunDef : public Def {
     virtual void print(Names const& names, std::ostream& dest) const override;
+
+    virtual void to_hossa(hossa::Builder& builder) const override;
 
     Name name;
     std::vector<Param> params;
@@ -89,7 +101,7 @@ private:
 // # Program
 
 struct Program {
-    Param param(Name name, type::Type* type);
+    Param param(Span span, Name name, type::Type* type);
 
     Id* id(Span span, type::Type* type, Name name);
     Int* const_int(Span span, type::Type* type, const char* chars, std::size_t size);
@@ -99,6 +111,8 @@ struct Program {
     void push_toplevel(Def* def);
 
     void print(Names const& names, std::ostream& dest) const;
+
+    hossa::Program to_hossa(Names& names) const;
 
     std::vector<Def*> defs;
 

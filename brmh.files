@@ -12,6 +12,8 @@ cpp/fast.cpp
 cpp/fast.hpp
 cpp/filename.cpp
 cpp/filename.hpp
+cpp/hossa.cpp
+cpp/hossa.hpp
 cpp/lexer.cpp
 cpp/lexer.hpp
 cpp/main.cpp
@@ -25,6 +27,7 @@ cpp/span.cpp
 cpp/span.hpp
 cpp/src.cpp
 cpp/src.hpp
+cpp/to_hossa.cpp
 cpp/type.cpp
 cpp/type.hpp
 cpp/typeenv.cpp

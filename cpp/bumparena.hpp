@@ -9,7 +9,30 @@ namespace brmh {
 struct BumpArena {
     BumpArena();
 
-    void* alloc(std::size_t size);
+    template<class T>
+    void* alloc() {
+        void* allocation = current_.alloc(sizeof(T));
+        if (allocation) {
+            return allocation;
+        } else {
+            bumpers_.push_back(std::move(current_));
+            current_ = Bumper();
+            return current_.alloc(sizeof(T));
+        }
+    }
+
+    template<class T>
+    void* alloc_array(std::size_t count) {
+        const std::size_t size = sizeof(T) * count;
+        void* allocation = current_.alloc(size);
+        if (allocation) {
+            return allocation;
+        } else {
+            bumpers_.push_back(std::move(current_));
+            current_ = Bumper();
+            return current_.alloc(size);
+        }
+    }
 
 private:
     struct Bumper {

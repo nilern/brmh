@@ -6,7 +6,7 @@ namespace brmh::fast {
 
 // # Param
 
-Param::Param(Name name_, type::Type* type_) : name(name_), type(type_) {}
+Param::Param(Span span_, Name name_, type::Type* type_) : span(span_), name(name_), type(type_) {}
 
 void Param::print(Names const& names, std::ostream& dest) const {
     name.print(names, dest);
@@ -75,17 +75,17 @@ void FunDef::print(Names const& names, std::ostream& dest) const {
 
 // # Program
 
-Param Program::param(Name name, type::Type* type) { return Param(name, type); }
+Param Program::param(Span span, Name name, type::Type* type) { return Param(span, name, type); }
 
 Id* Program::id(Span span, type::Type* type, Name name) {
-    return new(arena_.alloc(sizeof(Id))) Id(span, type, name); }
+    return new(arena_.alloc<Id>()) Id(span, type, name); }
 
 Int* Program::const_int(Span span, type::Type* type, const char* chars, std::size_t size) {
-    return new(arena_.alloc(sizeof(Int))) Int(span, type, chars, size);
+    return new(arena_.alloc<Int>()) Int(span, type, chars, size);
 }
 
 FunDef* Program::fun_def(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Expr* body) {
-    return new(arena_.alloc(sizeof(FunDef))) FunDef(span, name, std::move(params), codomain, body);
+    return new(arena_.alloc<FunDef>()) FunDef(span, name, std::move(params), codomain, body);
 }
 
 void Program::push_toplevel(Def* def) {
