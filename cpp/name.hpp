@@ -17,6 +17,7 @@ struct Name {
 
     bool operator==(Name const& other) const;
 
+    opt_ptr<const char> src_name(Names const& names) const;
     void print(Names const& names, std::ostream& dest) const;
 
 private:

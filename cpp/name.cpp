@@ -1,3 +1,4 @@
+#include "util.hpp"
 #include "name.hpp"
 
 #include <cstring>
@@ -59,6 +60,11 @@ std::size_t Name::Hash::operator()(Name name) const noexcept { return std::hash<
 Name::Name(uintptr_t id) : id_(id) {}
 
 bool Name::operator==(const Name& other) const { return id_ == other.id_; }
+
+opt_ptr<const char> Name::src_name(const Names &names) const {
+    auto it = names.name_chars_.find(*this);
+    return it != names.name_chars_.end() ? opt_ptr<const char>::some(it->second) : opt_ptr<const char>::none();
+}
 
 void Name::print(Names const& names, std::ostream& dest) const { names.print_name(*this, dest); }
 

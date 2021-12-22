@@ -31,3 +31,7 @@
 
 * In (simple) C++ for portability and community
 * Unity build
+
+### Dependencies
+
+* `llvm`

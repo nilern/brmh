@@ -4,6 +4,9 @@
 #include <span>
 #include <ostream>
 
+#include "llvm/IR/Module.h"
+#include "llvm/IR/IRBuilder.h"
+
 #include "util.hpp"
 #include "bumparena.hpp"
 #include "name.hpp"
@@ -21,6 +24,8 @@ struct Builder;
 struct Transfer {
     virtual void print(Names& names, std::ostream& dest) const = 0;
 
+    virtual void to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*> env, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const = 0;
+
     Span span;
 
 protected:
@@ -31,6 +36,8 @@ protected:
 
 struct Return : public Transfer {
     void print(Names& names, std::ostream& dest) const override;
+
+    virtual void to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*> env, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
 
     Expr* res;
 
@@ -61,6 +68,8 @@ private:
 struct Fn {
     void print(Names& names, std::ostream& dest) const;
 
+    void to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module, llvm::Function::LinkageTypes linkage) const;
+
     Span span;
     Name name;
     type::Type* codomain;
@@ -77,6 +86,8 @@ private:
 struct Expr {
     virtual void print(Names& names, std::ostream& dest) const = 0;
 
+    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const = 0;
+
     opt_ptr<Block> block;
     Span span;
     Name name;
@@ -91,6 +102,8 @@ protected:
 struct Param : public Expr {
     virtual void print(Names& names, std::ostream& dest) const override;
 
+    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+
 private:
     friend struct Builder;
 
@@ -101,6 +114,8 @@ private:
 
 struct Int : public Expr {
     virtual void print(Names& names, std::ostream& dest) const override;
+
+    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
 
     const char* digits;
 
@@ -113,7 +128,9 @@ private:
 // # Program
 
 struct Program {
-    virtual void print(Names& names, std::ostream& dest) const;
+    void print(Names& names, std::ostream& dest) const;
+
+    std::unique_ptr<llvm::Module> to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::StringRef module_name) const;
 
     std::vector<Fn*> externs;
 

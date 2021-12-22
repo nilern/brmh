@@ -1,5 +1,7 @@
 #include "type.hpp"
 
+#include "llvm/IR/DerivedTypes.h"
+
 namespace brmh::type {
 
 // # Type
@@ -26,11 +28,23 @@ void FnType::print(Names const& names, std::ostream& dest) const {
     codomain->print(names, dest);
 }
 
+llvm::Type *FnType::to_llvm(llvm::LLVMContext &llvm_ctx) const {
+    std::vector<llvm::Type*> llvm_domain(domain.size());
+    std::transform(domain.begin(), domain.end(), llvm_domain.begin(), [&] (Type* dom) {
+        return dom->to_llvm(llvm_ctx);
+    });
+    return llvm::FunctionType::get(codomain->to_llvm(llvm_ctx), llvm_domain, false);
+}
+
 // ## IntType
 
 IntType::IntType() {}
 
 void IntType::print(Names const&, std::ostream& dest) const { dest << "int"; }
+
+llvm::Type *IntType::to_llvm(llvm::LLVMContext& llvm_ctx) const {
+    return llvm::Type::getInt64Ty(llvm_ctx);
+}
 
 // # Types
 

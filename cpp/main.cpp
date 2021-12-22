@@ -27,6 +27,8 @@
 
 #include "to_hossa.cpp"
 
+#include "to_llvm.cpp"
+
 // TODO: Memory management (using bumpalo arenas and taking advantage of "IR going through passes" nature)
 
 int main (int argc, char** argv) {
@@ -60,6 +62,15 @@ int main (int argc, char** argv) {
 
             brmh::hossa::Program hossa_program = typed_program.to_hossa(names);
             hossa_program.print(names, std::cout);
+
+            std::cout << "---" << std::endl << std::endl;
+
+            llvm::LLVMContext llvm_ctx;
+            std::unique_ptr<llvm::Module> llvm_module = hossa_program.to_llvm(names, llvm_ctx, "bmrh program");
+            for (const auto& fn : llvm_module->functions()) {
+                fn.print(llvm::errs());
+                std::cout << std::endl;
+            }
 
             return EXIT_SUCCESS;
         } catch (const brmh::Lexer::Error& error) {
