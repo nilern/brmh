@@ -38,13 +38,65 @@
 
 #include "to_llvm.cpp"
 
+namespace brmh {
+
+struct CLIArgs {
+    std::string outfile;
+    std::vector<std::string> infiles;
+
+    class Error : public std::exception {
+        virtual const char* what() const noexcept override { return "CLIArgs::Parser::Error"; }
+    };
+
+    static CLIArgs parse(std::size_t argc, char const* const* argv) {
+        std::optional<std::string> outfile;
+        std::vector<std::string> infiles;
+
+        for (std::size_t i = 1 /* skip program name */; i < argc; ++i) {
+            if (argv[i][0] == '-') {
+                switch (argv[i][1]) {
+                case 'o':
+                    if (argv[i][2] == '\0') {
+                        ++i;
+                        if (i < argc) {
+                            if (argv[i][0] != '-') {
+                                outfile = argv[i];
+                            } else {
+                                throw Error(); // Missing outfile name
+                            }
+                        } else {
+                            throw Error(); // Missing outfile name
+                        }
+                    } else {
+                        throw Error(); // Too long option
+                    }
+                    break;
+                default: throw Error(); // Unrecognized option
+                }
+            } else {
+                infiles.push_back(argv[i]);
+            }
+        }
+
+        return {.outfile = std::move(outfile.value_or("output.o")), .infiles = std::move(infiles)};
+    }
+};
+
+} // namespace brmh
+
 // TODO: Memory management (using bumpalo arenas and taking advantage of "IR going through passes" nature)
 
-int main (int argc, char** argv) {
-    if (argc == 2) {
-        const brmh::Src src = strcmp(argv[1], "-") == 0
-                ? brmh::Src::stdin()
-                : brmh::Src::cli_arg(argv[1]);
+int main (int argc, char const* const* argv) {
+    brmh::CLIArgs const args = brmh::CLIArgs::parse(argc, argv);
+
+    if (args.infiles.size() == 0) {
+        std::cerr << "No input files" << std::endl;
+        return EXIT_FAILURE;
+    } else if (args.infiles.size() > 1) {
+        std::cerr << "TODO: multiple input files" << std::endl;
+        return EXIT_FAILURE;
+    } else {
+        brmh::Src const src = brmh::Src::file(args.infiles[0].c_str());
 
         try {
             std::cout << "Tokens\n======" << std::endl << std::endl;
@@ -88,8 +140,8 @@ int main (int argc, char** argv) {
             std::string triple_error;
             auto target = llvm::TargetRegistry::lookupTarget(target_triple, triple_error);
             if (!target) {
-              llvm::errs() << triple_error;
-              return EXIT_FAILURE;
+                llvm::errs() << triple_error;
+                return EXIT_FAILURE;
             }
 
             auto cpu = "generic";
@@ -110,20 +162,19 @@ int main (int argc, char** argv) {
 
             std::cout << ">>> Generating object file..." << std::endl << std::endl;
 
-            auto filename = "output.o";
+            auto filename = args.outfile;
             std::error_code outfile_error;
             llvm::raw_fd_ostream outfile(filename, outfile_error, llvm::sys::fs::OF_None);
             if (outfile_error) {
-              llvm::errs() << "Could not open file: " << outfile_error.message();
-              return EXIT_FAILURE;
+                llvm::errs() << "Could not open file: " << outfile_error.message();
+                return EXIT_FAILURE;
             }
 
             llvm::legacy::PassManager pass;
             auto FileType = llvm::CGFT_ObjectFile;
-
             if (target_machine->addPassesToEmitFile(pass, outfile, nullptr, FileType)) {
-              llvm::errs() << "TheTargetMachine can't emit a file of this type";
-              return 1;
+                llvm::errs() << "TheTargetMachine can't emit a file of this type";
+                return EXIT_FAILURE;
             }
 
             pass.run(llvm_module);
@@ -142,8 +193,5 @@ int main (int argc, char** argv) {
             std::cerr << error.what() << std::endl;
             return EXIT_FAILURE;
         }
-    } else {
-        std::cerr << "Invalid CLI arguments" << std::endl;
-        return EXIT_FAILURE;
     }
 }

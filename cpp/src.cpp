@@ -2,17 +2,18 @@
 
 #include <string>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 
 namespace brmh {
 
 Src::Src(Filename filename, std::string&& source_code) : filename_(filename), source_code_(source_code) {}
 
-Src Src::cli_arg(const char* source_code) { return Src(Filename("<CLI arg>"), std::string(source_code)); }
-
-Src Src::stdin() {
+Src Src::file(char const* filename) {
+    // FIXME: Error handling
+    std::fstream infile(filename, std::ios::in);
     std::stringstream ss;
-    ss << std::cin.rdbuf();
+    ss << infile.rdbuf();
     return Src(Filename("<stdin>"), ss.str());
 }
 

@@ -10,8 +10,7 @@ namespace brmh {
 struct Src {
     Src() = delete;
 
-    static Src cli_arg(const char* source_code);
-    static Src stdin();
+    static Src file(const char* filename);
 
     Filename filename() const;
     const char* source_code() const;
