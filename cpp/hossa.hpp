@@ -130,7 +130,7 @@ private:
 struct Program {
     void print(Names& names, std::ostream& dest) const;
 
-    std::unique_ptr<llvm::Module> to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::StringRef module_name) const;
+    void to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const;
 
     std::vector<Fn*> externs;
 

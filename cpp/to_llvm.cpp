@@ -47,14 +47,10 @@ void hossa::Fn::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::M
     llvm::verifyFunction(*llvm_fn);
 }
 
-std::unique_ptr<llvm::Module> hossa::Program::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::StringRef module_name) const {
-    std::unique_ptr<llvm::Module> module = std::make_unique<llvm::Module>(module_name, llvm_ctx);
-
+void hossa::Program::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const {
     for (hossa::Fn* const ext_fn : externs) {
-        ext_fn->to_llvm(names, llvm_ctx, *module, llvm::Function::ExternalLinkage);
+        ext_fn->to_llvm(names, llvm_ctx, module, llvm::Function::ExternalLinkage);
     }
-
-    return module;
 }
 
 } // namespace brmh
