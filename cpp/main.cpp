@@ -162,9 +162,9 @@ int main (int argc, char const* const* argv) {
 
             std::cout << ">>> Generating object file..." << std::endl << std::endl;
 
-            auto filename = args.outfile;
+            auto obj_filename = args.outfile + ".o";
             std::error_code outfile_error;
-            llvm::raw_fd_ostream outfile(filename, outfile_error, llvm::sys::fs::OF_None);
+            llvm::raw_fd_ostream outfile(obj_filename, outfile_error, llvm::sys::fs::OF_None);
             if (outfile_error) {
                 llvm::errs() << "Could not open file: " << outfile_error.message();
                 return EXIT_FAILURE;
@@ -180,7 +180,20 @@ int main (int argc, char const* const* argv) {
             pass.run(llvm_module);
             outfile.flush();
 
-            return EXIT_SUCCESS;
+            std::cout << ">>> Linking program binary..." << std::endl << std::endl;
+
+            // FIXME: portability:
+            std::string link = std::string("cc -o")
+                    .append(args.outfile)
+                    .append(" ").append(obj_filename);
+            if (std::system(link.c_str()) != 0) {
+                std::remove(obj_filename.c_str()); // TODO: Error handling
+                std::cerr << "Linking failed" << std::endl;
+                return EXIT_FAILURE;
+            } else {
+                std::remove(obj_filename.c_str()); // TODO: Error handling
+                return EXIT_SUCCESS;
+            }
         } catch (const brmh::Lexer::Error& error) {
             std::cerr << error.what() << " at ";
             error.pos.print(std::cerr);
