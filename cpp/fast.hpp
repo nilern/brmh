@@ -38,6 +38,44 @@ protected:
     Expr(Span span, type::Type* type);
 };
 
+template<std::size_t N>
+struct PrimApp : public Expr {
+    std::array<Expr*, N> args;
+
+protected:
+    PrimApp(Span span, type::Type* type, std::array<Expr*, N> args_) : Expr(span, type), args(args_) {}
+
+    void print_primapp(Names const& names, std::ostream& dest, char const* opname) const {
+        dest << "__" << opname;
+
+        dest << '(';
+
+        auto arg = args.begin();
+        if (arg != args.end()) {
+            (*arg)->print(names, dest);
+            ++arg;
+
+            for (; arg != args.end(); ++arg) {
+                dest << ", ";
+                (*arg)->print(names, dest);
+            }
+        }
+
+        dest << ')';
+    }
+};
+
+struct AddWI64 : public PrimApp<2> {
+    virtual void print(Names const& names, std::ostream& dest) const override;
+
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
+
+private:
+    friend struct Program;
+
+    AddWI64(Span span, type::Type* type, std::array<Expr*, 2> args);
+};
+
 struct Id : public Expr {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
@@ -103,6 +141,7 @@ private:
 struct Program {
     Param param(Span span, Name name, type::Type* type);
 
+    AddWI64* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Id* id(Span span, type::Type* type, Name name);
     I64* const_i64(Span span, type::Type* type, const char* chars, std::size_t size);
 

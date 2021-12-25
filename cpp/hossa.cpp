@@ -57,6 +57,13 @@ void Block::print(Names& names, std::ostream& dest) const {
 Expr::Expr(opt_ptr<Block> block_, Span span_, Name name_, type::Type* type_)
     : block(block_), span(span_), name(name_), type(type_) {}
 
+AddWI64::AddWI64(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, 2> args)
+    : PrimApp(block, span, name, type, args) {}
+
+void AddWI64::print(Names &names, std::ostream &dest) const {
+    print_primapp(names, dest, "addWI64");
+}
+
 Param::Param(opt_ptr<Block> block, Span span, Name name, type::Type* type)
     : Expr(block, span, name, type){}
 
@@ -124,6 +131,10 @@ I64* Builder::const_i64(Span span, type::Type* type, const char* digits_, std::s
 }
 
 Transfer* Builder::ret(Span span, Expr* expr) { return new (arena_.alloc<Return>()) Return(span, expr); }
+
+Expr* Builder::add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args) {
+    return new (arena_.alloc<AddWI64>()) AddWI64(opt_ptr<Block>::none(), span, names_->fresh(), type, args);
+}
 
 Expr* Builder::id(Name name) { return exprs_.at(name); }
 

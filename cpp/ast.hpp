@@ -36,6 +36,24 @@ struct Expr {
     Span span;
 };
 
+struct PrimApp : public Expr {
+    enum struct Op {
+        ADD_W_I64
+    };
+
+    PrimApp(Span span, Op op, std::vector<Expr*>&& args);
+
+    virtual fast::Expr* type_of(fast::Program& program, TypeEnv& env) const override;
+
+    virtual void print(Names const& names, std::ostream& dest) const override;
+
+    Op op;
+    std::vector<Expr*> args; // OPTIMIZE
+
+private:
+    static void print_op(Op op, std::ostream& dest);
+};
+
 struct Id : public Expr {
     Id(Span pos, Name name);
 

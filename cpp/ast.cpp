@@ -16,7 +16,36 @@ void Param::print(Names const& names, std::ostream& dest) const {
 
 Expr::Expr(Span sp) : span(sp) {}
 
-// # Const
+// ## PrimApp
+
+PrimApp::PrimApp(Span sp, Op op_, std::vector<Expr*>&& args_) : Expr(sp), op(op_), args(std::move(args_)) {}
+
+void PrimApp::print(Names const& names, std::ostream& dest) const {
+    print_op(op, dest);
+
+    dest << '(';
+
+    auto arg = args.begin();
+    if (arg != args.end()) {
+        (*arg)->print(names, dest);
+        ++arg;
+
+        for (; arg != args.end(); ++arg) {
+            dest << ", ";
+            (*arg)->print(names, dest);
+        }
+    }
+
+    dest << ')';
+}
+
+void PrimApp::print_op(Op op, std::ostream &dest) {
+    switch (op) {
+    case Op::ADD_W_I64: dest << "__addWI64";
+    }
+}
+
+// ## Const
 
 Const::Const(Span sp) : Expr(sp) {}
 

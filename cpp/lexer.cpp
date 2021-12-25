@@ -50,7 +50,9 @@ optional<Lexer::Token> Lexer::peek() {
         case '}': return optional(Lexer::Token {Lexer::Token::Type::RBRACE, chars_, 1, pos_});
 
         default:
-            if (isspace(*chars_)) {
+            if (*chars_ == '_' && chars_[1] == '_') {
+                return lex_primop();
+            } else if (isspace(*chars_)) {
                 ++chars_;
                 pos_ = Pos(pos_.filename(), pos_.index() + 1);
                 continue;
@@ -72,6 +74,16 @@ Lexer::Token Lexer::peek_some() {
     } else {
         throw Error(pos());
     }
+}
+
+optional<Lexer::Token> Lexer::lex_primop() {
+    uintptr_t size = 2; // "__"
+
+    for (const char* c = chars_ + size; isalnum(*c); ++c) {
+        ++size;
+    }
+
+    return optional(Lexer::Token {Lexer::Token::Type::PRIMOP, chars_, size, pos_});
 }
 
 optional<Lexer::Token> Lexer::lex_id() {

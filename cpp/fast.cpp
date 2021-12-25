@@ -18,6 +18,14 @@ void Param::print(Names const& names, std::ostream& dest) const {
 
 Expr::Expr(Span span_, type::Type* type_) : span(span_), type(type_) {}
 
+// # PrimApp
+
+void AddWI64::print(const Names &names, std::ostream &dest) const {
+    PrimApp::print_primapp(names, dest, "addWI64");
+}
+
+AddWI64::AddWI64(Span span, type::Type *type, std::array<Expr *, 2> args) : PrimApp<2>(span, type, args) {}
+
 // ## Id
 
 Id::Id(Span span, type::Type* type, Name name_) : Expr(span, type), name(name_) {}
@@ -76,6 +84,10 @@ void FunDef::print(Names const& names, std::ostream& dest) const {
 // # Program
 
 Param Program::param(Span span, Name name, type::Type* type) { return Param(span, name, type); }
+
+AddWI64* Program::add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args){
+    return new(arena_.alloc<AddWI64>()) AddWI64(span, type, args);
+}
 
 Id* Program::id(Span span, type::Type* type, Name name) {
     return new(arena_.alloc<Id>()) Id(span, type, name); }

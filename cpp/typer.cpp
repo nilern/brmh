@@ -51,6 +51,25 @@ void ast::Param::declare(TypeEnv &env) const {
     env.declare(name, type);
 }
 
+fast::Expr* ast::PrimApp::type_of(fast::Program& program, TypeEnv& env) const {
+    switch (op) {
+    case ast::PrimApp::Op::ADD_W_I64: {
+        // FIXME: Brittle '2':s:
+        if (args.size() != 2) { throw type::Error(span); }
+
+        std::array<fast::Expr*, 2> typed_args;
+
+        for (std::size_t i = 0; i < 2; ++i) {
+            typed_args[i] = args[i]->check(program, env, env.types().get_i64());
+        }
+
+        return program.add_w_i64(span, env.types().get_i64(), typed_args);
+    }
+
+    default: assert(false); // unreachable
+    }
+}
+
 fast::Expr* ast::Int::type_of(fast::Program& program, TypeEnv& env) const {
     return program.const_i64(span, env.types().get_i64(), digits, strlen(digits));
 }

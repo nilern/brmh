@@ -21,7 +21,7 @@ struct Lexer {
             DOT,
             EQUALS, COLON,
             INT,
-            ID, FUN, I64_T
+            ID, PRIMOP, FUN, I64_T
         };
 
         void print(std::ostream& out) const;
@@ -51,6 +51,7 @@ struct Lexer {
     optional<optional<Token>> match(Token::Type type);
 
 private:
+    optional<Token> lex_primop();
     optional<Token> lex_id();
     optional<Token> lex_int();
 

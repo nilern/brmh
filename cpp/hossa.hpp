@@ -97,6 +97,47 @@ protected:
     Expr(opt_ptr<Block> block, Span span, Name name, type::Type* type);
 };
 
+// ## PrimApp
+
+template<std::size_t N>
+struct PrimApp : public Expr {
+    std::array<Expr*, N> args;
+
+protected:
+    PrimApp(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, N> args_)
+        : Expr(block, span, name, type), args(args_) {}
+
+    void print_primapp(Names& names, std::ostream& dest, char const* opname) const {
+        dest << "__" << opname;
+
+        dest << '(';
+
+        auto arg = args.begin();
+        if (arg != args.end()) {
+            (*arg)->print(names, dest);
+            ++arg;
+
+            for (; arg != args.end(); ++arg) {
+                dest << ", ";
+                (*arg)->print(names, dest);
+            }
+        }
+
+        dest << ')';
+    }
+};
+
+struct AddWI64 : public PrimApp<2> {
+    virtual void print(Names& names, std::ostream& dest) const override;
+
+    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+
+private:
+    friend struct Builder;
+
+    AddWI64(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, 2> args);
+};
+
 // ## Param
 
 struct Param : public Expr {
@@ -155,6 +196,7 @@ struct Builder {
     Param* param(Span span, type::Type* type, Block* block, Name name, std::size_t index);
     Transfer* ret(Span span, Expr* res);
 
+    Expr* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Expr* id(Name name);
     I64* const_i64(Span span, type::Type* type, const char* chars, std::size_t size);
 

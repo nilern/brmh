@@ -1,5 +1,7 @@
 #include "parser.hpp"
 
+#include <cstring>
+
 namespace brmh {
 
 // # Parser::Error
@@ -46,33 +48,17 @@ ast::FunDef* Parser::parse_fundef() {
     std::vector<ast::Param> params;
     lexer_.match(Lexer::Token::Type::LPAREN); // Discard '('
 
-    const auto tok = lexer_.peek_some();
-    switch (tok.typ) {
-    case Lexer::Token::Type::ID: {
+    if (lexer_.peek_some().typ == Lexer::Token::Type::RPAREN) {
+        lexer_.next(); // Discard ')'
+    } else {
         params.push_back(parse_param());
-        break;
-    }
 
-    default: break;
-    }
-
-    for (bool done = false; !done;) {
-        const auto tok = lexer_.peek_some();
-        switch (tok.typ) {
-        case Lexer::Token::Type::RPAREN: {
-            lexer_.next(); // discard ')'
-            done = true;
-            break;
-        }
-
-        case Lexer::Token::Type::COMMA: {
-            lexer_.next(); // discard ','
+        while (lexer_.peek_some().typ == Lexer::Token::Type::COMMA) {
+            lexer_.next(); // Discard ','
             params.push_back(parse_param());
-            break;
         }
 
-        default: throw Error(tok.pos);
-        }
+        lexer_.match(Lexer::Token::Type::RPAREN); // Discard ')'
     }
 
     lexer_.match(Lexer::Token::Type::COLON); // Discard ':'
@@ -99,6 +85,34 @@ ast::Param Parser::parse_param() {
 ast::Expr* Parser::expr() {
     const auto tok = lexer_.peek_some();
     switch (tok.typ) {
+    case Lexer::Token::Type::PRIMOP: {
+        const auto op_tok = tok;
+        lexer_.next();
+
+        ast::PrimApp::Op const op = strncmp(op_tok.chars, "__addWI64", op_tok.size) == 0
+                ? ast::PrimApp::Op::ADD_W_I64
+                : throw Error(op_tok.pos);
+
+        std::vector<ast::Expr*> args;
+        lexer_.match(Lexer::Token::Type::LPAREN); // Discard '('
+
+        if (lexer_.peek_some().typ == Lexer::Token::Type::RPAREN) {
+            lexer_.next(); // Discard ')'
+        } else {
+            args.push_back(expr());
+
+            while (lexer_.peek_some().typ == Lexer::Token::Type::COMMA) {
+                lexer_.next(); // Discard ','
+                args.push_back(expr());
+            }
+
+            lexer_.match(Lexer::Token::Type::RPAREN); // Discard ')'
+        }
+
+        Span span{op_tok.pos, lexer_.pos()};
+        return new ast::PrimApp(span, op, std::move(args));
+    }
+
     case Lexer::Token::Type::ID: {
         lexer_.next();
 
