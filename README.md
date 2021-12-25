@@ -20,6 +20,8 @@
     - Cannot monomorphise recursive uses of generative functors
 * Raw and hygienic macros
 * GC, but bypassable (like Golang)
+* Move semantics for "non-POD" types
+    - But no borrow checker; GC deals with (non-raw) pointer lifetimes
 * Effect system
     - Effect interpreters use escape continuations (i.e. `longjmp`)
         * Region typing (MLKit, Rust) can make these continuations typesafe
