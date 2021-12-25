@@ -53,7 +53,9 @@ void ast::Param::declare(TypeEnv &env) const {
 
 fast::Expr* ast::PrimApp::type_of(fast::Program& program, TypeEnv& env) const {
     switch (op) {
-    case ast::PrimApp::Op::ADD_W_I64: {
+    case ast::PrimApp::Op::ADD_W_I64:
+    case ast::PrimApp::Op::SUB_W_I64:
+    case ast::PrimApp::Op::MUL_W_I64: {
         // FIXME: Brittle '2':s:
         if (args.size() != 2) { throw type::Error(span); }
 
@@ -63,7 +65,12 @@ fast::Expr* ast::PrimApp::type_of(fast::Program& program, TypeEnv& env) const {
             typed_args[i] = args[i]->check(program, env, env.types().get_i64());
         }
 
-        return program.add_w_i64(span, env.types().get_i64(), typed_args);
+        switch (op) {
+        case ast::PrimApp::Op::ADD_W_I64: return program.add_w_i64(span, env.types().get_i64(), typed_args);
+        case ast::PrimApp::Op::SUB_W_I64: return program.sub_w_i64(span, env.types().get_i64(), typed_args);
+        case ast::PrimApp::Op::MUL_W_I64: return program.mul_w_i64(span, env.types().get_i64(), typed_args);
+        default: assert(false); // unreachable
+        }
     }
 
     default: assert(false); // unreachable

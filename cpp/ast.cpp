@@ -41,7 +41,9 @@ void PrimApp::print(Names const& names, std::ostream& dest) const {
 
 void PrimApp::print_op(Op op, std::ostream &dest) {
     switch (op) {
-    case Op::ADD_W_I64: dest << "__addWI64";
+    case Op::ADD_W_I64: dest << "__addWI64"; break;
+    case Op::SUB_W_I64: dest << "__subWI64"; break;
+    case Op::MUL_W_I64: dest << "__mulWI64";
     }
 }
 

@@ -101,14 +101,8 @@ protected:
 
 template<std::size_t N>
 struct PrimApp : public Expr {
-    std::array<Expr*, N> args;
-
-protected:
-    PrimApp(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, N> args_)
-        : Expr(block, span, name, type), args(args_) {}
-
-    void print_primapp(Names& names, std::ostream& dest, char const* opname) const {
-        dest << "__" << opname;
+    virtual void print(Names& names, std::ostream& dest) const override {
+        dest << "__" << opname();
 
         dest << '(';
 
@@ -125,10 +119,18 @@ protected:
 
         dest << ')';
     }
+
+    virtual const char* opname() const = 0;
+
+    std::array<Expr*, N> args;
+
+protected:
+    PrimApp(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, N> args_)
+        : Expr(block, span, name, type), args(args_) {}
 };
 
 struct AddWI64 : public PrimApp<2> {
-    virtual void print(Names& names, std::ostream& dest) const override;
+    virtual const char* opname() const override;
 
     virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
 
@@ -136,6 +138,28 @@ private:
     friend struct Builder;
 
     AddWI64(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, 2> args);
+};
+
+struct SubWI64 : public PrimApp<2> {
+    virtual const char* opname() const override;
+
+    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+
+private:
+    friend struct Builder;
+
+    SubWI64(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, 2> args);
+};
+
+struct MulWI64 : public PrimApp<2> {
+    virtual const char* opname() const override;
+
+    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+
+private:
+    friend struct Builder;
+
+    MulWI64(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, 2> args);
 };
 
 // ## Param
@@ -197,6 +221,8 @@ struct Builder {
     Transfer* ret(Span span, Expr* res);
 
     Expr* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
+    Expr* sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
+    Expr* mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Expr* id(Name name);
     I64* const_i64(Span span, type::Type* type, const char* chars, std::size_t size);
 

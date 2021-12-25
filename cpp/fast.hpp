@@ -40,13 +40,8 @@ protected:
 
 template<std::size_t N>
 struct PrimApp : public Expr {
-    std::array<Expr*, N> args;
-
-protected:
-    PrimApp(Span span, type::Type* type, std::array<Expr*, N> args_) : Expr(span, type), args(args_) {}
-
-    void print_primapp(Names const& names, std::ostream& dest, char const* opname) const {
-        dest << "__" << opname;
+    virtual void print(Names const& names, std::ostream& dest) const override {
+        dest << "__" << opname();
 
         dest << '(';
 
@@ -63,10 +58,17 @@ protected:
 
         dest << ')';
     }
+
+    virtual char const* opname() const = 0;
+
+    std::array<Expr*, N> args;
+
+protected:
+    PrimApp(Span span, type::Type* type, std::array<Expr*, N> args_) : Expr(span, type), args(args_) {}
 };
 
 struct AddWI64 : public PrimApp<2> {
-    virtual void print(Names const& names, std::ostream& dest) const override;
+    virtual char const* opname() const override;
 
     virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
 
@@ -74,6 +76,28 @@ private:
     friend struct Program;
 
     AddWI64(Span span, type::Type* type, std::array<Expr*, 2> args);
+};
+
+struct SubWI64 : public PrimApp<2> {
+    virtual char const* opname() const override;
+
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
+
+private:
+    friend struct Program;
+
+    SubWI64(Span span, type::Type* type, std::array<Expr*, 2> args);
+};
+
+struct MulWI64 : public PrimApp<2> {
+    virtual char const* opname() const override;
+
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
+
+private:
+    friend struct Program;
+
+    MulWI64(Span span, type::Type* type, std::array<Expr*, 2> args);
 };
 
 struct Id : public Expr {
@@ -142,6 +166,8 @@ struct Program {
     Param param(Span span, Name name, type::Type* type);
 
     AddWI64* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
+    SubWI64* sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
+    MulWI64* mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Id* id(Span span, type::Type* type, Name name);
     I64* const_i64(Span span, type::Type* type, const char* chars, std::size_t size);
 

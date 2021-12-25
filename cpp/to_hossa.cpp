@@ -5,6 +5,8 @@
 
 namespace brmh {
 
+// TODO: DRY:
+
 hossa::Expr* fast::AddWI64::to_hossa(hossa::Builder& builder) const {
     // FIXME: brittle '2':s:
 
@@ -15,6 +17,30 @@ hossa::Expr* fast::AddWI64::to_hossa(hossa::Builder& builder) const {
     }
 
     return builder.add_w_i64(span, type, hossa_args);
+}
+
+hossa::Expr* fast::SubWI64::to_hossa(hossa::Builder& builder) const {
+    // FIXME: brittle '2':s:
+
+    std::array<hossa::Expr*, 2> hossa_args;
+
+    for (std::size_t i = 0; i < 2; ++i) {
+        hossa_args[i] = args[i]->to_hossa(builder);
+    }
+
+    return builder.sub_w_i64(span, type, hossa_args);
+}
+
+hossa::Expr* fast::MulWI64::to_hossa(hossa::Builder& builder) const {
+    // FIXME: brittle '2':s:
+
+    std::array<hossa::Expr*, 2> hossa_args;
+
+    for (std::size_t i = 0; i < 2; ++i) {
+        hossa_args[i] = args[i]->to_hossa(builder);
+    }
+
+    return builder.mul_w_i64(span, type, hossa_args);
 }
 
 hossa::Expr* fast::Id::to_hossa(hossa::Builder& builder) const {

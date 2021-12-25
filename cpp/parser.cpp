@@ -91,7 +91,11 @@ ast::Expr* Parser::expr() {
 
         ast::PrimApp::Op const op = strncmp(op_tok.chars, "__addWI64", op_tok.size) == 0
                 ? ast::PrimApp::Op::ADD_W_I64
-                : throw Error(op_tok.pos);
+                : strncmp(op_tok.chars, "__subWI64", op_tok.size) == 0
+                  ? ast::PrimApp::Op::SUB_W_I64
+                  : strncmp(op_tok.chars, "__mulWI64", op_tok.size) == 0
+                    ? ast::PrimApp::Op::MUL_W_I64
+                    :  throw Error(op_tok.pos);
 
         std::vector<ast::Expr*> args;
         lexer_.match(Lexer::Token::Type::LPAREN); // Discard '('

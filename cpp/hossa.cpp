@@ -60,9 +60,17 @@ Expr::Expr(opt_ptr<Block> block_, Span span_, Name name_, type::Type* type_)
 AddWI64::AddWI64(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, 2> args)
     : PrimApp(block, span, name, type, args) {}
 
-void AddWI64::print(Names &names, std::ostream &dest) const {
-    print_primapp(names, dest, "addWI64");
-}
+char const* AddWI64::opname() const { return  "addWI64"; }
+
+SubWI64::SubWI64(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, 2> args)
+    : PrimApp(block, span, name, type, args) {}
+
+char const* SubWI64::opname() const { return "subWI64"; }
+
+MulWI64::MulWI64(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, 2> args)
+    : PrimApp(block, span, name, type, args) {}
+
+char const* MulWI64::opname() const { return "mulWI64"; }
 
 Param::Param(opt_ptr<Block> block, Span span, Name name, type::Type* type)
     : Expr(block, span, name, type){}
@@ -134,6 +142,14 @@ Transfer* Builder::ret(Span span, Expr* expr) { return new (arena_.alloc<Return>
 
 Expr* Builder::add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args) {
     return new (arena_.alloc<AddWI64>()) AddWI64(opt_ptr<Block>::none(), span, names_->fresh(), type, args);
+}
+
+Expr* Builder::sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args) {
+    return new (arena_.alloc<SubWI64>()) SubWI64(opt_ptr<Block>::none(), span, names_->fresh(), type, args);
+}
+
+Expr* Builder::mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args) {
+    return new (arena_.alloc<MulWI64>()) MulWI64(opt_ptr<Block>::none(), span, names_->fresh(), type, args);
 }
 
 Expr* Builder::id(Name name) { return exprs_.at(name); }

@@ -20,11 +20,17 @@ Expr::Expr(Span span_, type::Type* type_) : span(span_), type(type_) {}
 
 // # PrimApp
 
-void AddWI64::print(const Names &names, std::ostream &dest) const {
-    PrimApp::print_primapp(names, dest, "addWI64");
-}
-
 AddWI64::AddWI64(Span span, type::Type *type, std::array<Expr *, 2> args) : PrimApp<2>(span, type, args) {}
+
+char const* AddWI64::opname() const { return "addWI64"; }
+
+SubWI64::SubWI64(Span span, type::Type *type, std::array<Expr *, 2> args) : PrimApp<2>(span, type, args) {}
+
+char const*  SubWI64::opname() const { return "subWI64"; }
+
+MulWI64::MulWI64(Span span, type::Type *type, std::array<Expr *, 2> args) : PrimApp<2>(span, type, args) {}
+
+char const*  MulWI64::opname() const { return "mulWI64"; }
 
 // ## Id
 
@@ -87,6 +93,14 @@ Param Program::param(Span span, Name name, type::Type* type) { return Param(span
 
 AddWI64* Program::add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args){
     return new(arena_.alloc<AddWI64>()) AddWI64(span, type, args);
+}
+
+SubWI64* Program::sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args){
+    return new(arena_.alloc<SubWI64>()) SubWI64(span, type, args);
+}
+
+MulWI64* Program::mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args){
+    return new(arena_.alloc<MulWI64>()) MulWI64(span, type, args);
 }
 
 Id* Program::id(Span span, type::Type* type, Name name) {
