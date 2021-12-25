@@ -28,12 +28,12 @@ void Id::print(Names const& names, std::ostream& dest) const { name.print(names,
 
 Const::Const(Span span, type::Type* type) : Expr(span, type) {}
 
-// ### Int
+// ### I64
 
-Int::Int(Span span, type::Type* type, const char* digits, std::size_t size)
+I64::I64(Span span, type::Type* type, const char* digits, std::size_t size)
     : Const(span, type), digits(strndup(digits, size)) {}
 
-void Int::print(Names const&, std::ostream& dest) const { dest << digits; }
+void I64::print(Names const&, std::ostream& dest) const { dest << digits; }
 
 // # Def
 
@@ -80,8 +80,8 @@ Param Program::param(Span span, Name name, type::Type* type) { return Param(span
 Id* Program::id(Span span, type::Type* type, Name name) {
     return new(arena_.alloc<Id>()) Id(span, type, name); }
 
-Int* Program::const_int(Span span, type::Type* type, const char* chars, std::size_t size) {
-    return new(arena_.alloc<Int>()) Int(span, type, chars, size);
+I64* Program::const_i64(Span span, type::Type* type, const char* chars, std::size_t size) {
+    return new(arena_.alloc<I64>()) I64(span, type, chars, size);
 }
 
 FunDef* Program::fun_def(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Expr* body) {

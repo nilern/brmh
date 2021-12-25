@@ -64,10 +64,10 @@ void Param::print(Names& names, std::ostream& dest) const {
     name.print(names, dest);
 }
 
-Int::Int(opt_ptr<Block> block, Span span, Name name, type::Type* type, const char* digits_)
+I64::I64(opt_ptr<Block> block, Span span, Name name, type::Type* type, const char* digits_)
     : Expr(block, span, name, type), digits(digits_) {}
 
-void Int::print(Names&, std::ostream& dest) const {
+void I64::print(Names&, std::ostream& dest) const {
     dest << digits;
 }
 
@@ -117,10 +117,10 @@ Param* Builder::param(Span span, type::Type* type, Block* block_, Name name, std
     return param;
 }
 
-Int* Builder::const_int(Span span, type::Type* type, const char* digits_, std::size_t size) {
+I64* Builder::const_i64(Span span, type::Type* type, const char* digits_, std::size_t size) {
     char* digits = static_cast<char*>(arena_.alloc_array<char>(size));
     strncpy(digits, digits_, size);
-    return new (arena_.alloc<Int>()) Int(opt_ptr<Block>::none(), span, names_->fresh(), type, digits);
+    return new (arena_.alloc<I64>()) I64(opt_ptr<Block>::none(), span, names_->fresh(), type, digits);
 }
 
 Transfer* Builder::ret(Span span, Expr* expr) { return new (arena_.alloc<Return>()) Return(span, expr); }

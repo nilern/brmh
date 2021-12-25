@@ -9,8 +9,8 @@ hossa::Expr* fast::Id::to_hossa(hossa::Builder& builder) const {
     return builder.id(name);
 }
 
-hossa::Expr* fast::Int::to_hossa(hossa::Builder& builder) const {
-    return builder.const_int(span, type, digits, /* OPTIMIZE: */ strlen(digits));
+hossa::Expr* fast::I64::to_hossa(hossa::Builder& builder) const {
+    return builder.const_i64(span, type, digits, /* OPTIMIZE: */ strlen(digits));
 }
 
 void fast::FunDef::to_hossa(hossa::Builder& builder) const {

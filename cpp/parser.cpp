@@ -120,9 +120,9 @@ ast::Expr* Parser::expr() {
 type::Type* Parser::parse_type() {
     const auto tok = lexer_.peek_some();
     switch (tok.typ) {
-    case Lexer::Token::Type::INT_T: {
+    case Lexer::Token::Type::I64_T: {
         lexer_.next();
-        return types_.get_int();
+        return types_.get_i64();
     }
 
     default: throw Error(tok.pos);

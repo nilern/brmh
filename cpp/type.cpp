@@ -36,21 +36,21 @@ llvm::Type *FnType::to_llvm(llvm::LLVMContext &llvm_ctx) const {
     return llvm::FunctionType::get(codomain->to_llvm(llvm_ctx), llvm_domain, false);
 }
 
-// ## IntType
+// ## I64
 
-IntType::IntType() {}
+I64::I64() {}
 
-void IntType::print(Names const&, std::ostream& dest) const { dest << "int"; }
+void I64::print(Names const&, std::ostream& dest) const { dest << "i64"; }
 
-llvm::Type *IntType::to_llvm(llvm::LLVMContext& llvm_ctx) const {
+llvm::Type *I64::to_llvm(llvm::LLVMContext& llvm_ctx) const {
     return llvm::Type::getInt64Ty(llvm_ctx);
 }
 
 // # Types
 
-Types::Types() : int_t_(new IntType()) {}
+Types::Types() : i64_t_(new I64()) {}
 
-IntType* Types::get_int() { return int_t_; }
+I64* Types::get_i64() { return i64_t_; }
 
 FnType* Types::fn(std::vector<Type*>&& domain, Type* codomain) {
     return new FnType(std::move(domain), codomain);  // OPTIMIZE

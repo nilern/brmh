@@ -21,7 +21,7 @@ struct Lexer {
             DOT,
             EQUALS, COLON,
             INT,
-            ID, FUN, INT_T
+            ID, FUN, I64_T
         };
 
         void print(std::ostream& out) const;

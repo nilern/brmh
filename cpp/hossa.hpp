@@ -110,9 +110,9 @@ private:
     Param(opt_ptr<Block> block, Span span, Name name, type::Type* type);
 };
 
-// ## Int
+// ## I64
 
-struct Int : public Expr {
+struct I64 : public Expr {
     virtual void print(Names& names, std::ostream& dest) const override;
 
     virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
@@ -122,7 +122,7 @@ struct Int : public Expr {
 private:
     friend struct Builder;
 
-    Int(opt_ptr<Block> block, Span span, Name name, type::Type* type, const char* digits);
+    I64(opt_ptr<Block> block, Span span, Name name, type::Type* type, const char* digits);
 };
 
 // # Program
@@ -156,7 +156,7 @@ struct Builder {
     Transfer* ret(Span span, Expr* res);
 
     Expr* id(Name name);
-    Int* const_int(Span span, type::Type* type, const char* chars, std::size_t size);
+    I64* const_i64(Span span, type::Type* type, const char* chars, std::size_t size);
 
     Program build();
 

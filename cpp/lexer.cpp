@@ -77,14 +77,14 @@ Lexer::Token Lexer::peek_some() {
 optional<Lexer::Token> Lexer::lex_id() {
     uintptr_t size = 0;
 
-    for (const char* c = chars_; isalpha(*c); ++c) {
+    for (const char* c = chars_; isalnum(*c); ++c) {
         ++size;
     }
 
     const Lexer::Token::Type type = strncmp(chars_, "fun", size) == 0
             ? Lexer::Token::Type::FUN
-            : strncmp(chars_, "int", size) == 0
-              ? Lexer::Token::Type::INT_T
+            : strncmp(chars_, "i64", size) == 0
+              ? Lexer::Token::Type::I64_T
               : Lexer::Token::Type::ID;
     return optional(Lexer::Token {type, chars_, size, pos_});
 }

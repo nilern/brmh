@@ -52,7 +52,7 @@ void ast::Param::declare(TypeEnv &env) const {
 }
 
 fast::Expr* ast::Int::type_of(fast::Program& program, TypeEnv& env) const {
-    return program.const_int(span, env.types().get_int(), digits, strlen(digits));
+    return program.const_i64(span, env.types().get_i64(), digits, strlen(digits));
 }
 
 fast::Expr* ast::Id::type_of(fast::Program& program, TypeEnv& env) const {
@@ -102,6 +102,6 @@ bool type::FnType::is_subtype_of(const type::Type* other) const {
     return codomain->is_subtype_of(other_fn->codomain);
 }
 
-bool type::IntType::is_subtype_of(const type::Type* other) const { return this == other; }
+bool type::I64::is_subtype_of(const type::Type* other) const { return this == other; }
 
 } // namespace brmh

@@ -56,7 +56,7 @@ protected:
     Const(Span span, type::Type* type);
 };
 
-struct Int : public Const {
+struct I64 : public Const {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
     virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
@@ -66,7 +66,7 @@ struct Int : public Const {
 private:
     friend struct Program;
 
-    Int(Span span, type::Type* type, const char* digits, std::size_t size);
+    I64(Span span, type::Type* type, const char* digits, std::size_t size);
 };
 
 // # Defs
@@ -104,7 +104,7 @@ struct Program {
     Param param(Span span, Name name, type::Type* type);
 
     Id* id(Span span, type::Type* type, Name name);
-    Int* const_int(Span span, type::Type* type, const char* chars, std::size_t size);
+    I64* const_i64(Span span, type::Type* type, const char* chars, std::size_t size);
 
     FunDef* fun_def(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Expr* body);
 

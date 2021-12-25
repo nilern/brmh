@@ -6,7 +6,7 @@
 
 namespace brmh {
 
-llvm::Value* hossa::Int::to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>&) const {
+llvm::Value* hossa::I64::to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>&) const {
     return llvm::ConstantInt::get(llvm::Type::getInt64Ty(llvm_ctx), /* FIXME: do this in typechecking, with range checking: */ atol(digits));
 }
 

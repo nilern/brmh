@@ -38,7 +38,7 @@ private:
     FnType(std::vector<Type*>&& domain, Type* codomain);
 };
 
-struct IntType : public Type {
+struct I64 : public Type {
     virtual bool is_subtype_of(const Type* other) const override;
 
     virtual void print(Names const& names, std::ostream& dest) const override;
@@ -48,17 +48,17 @@ struct IntType : public Type {
 private:
     friend struct Types;
 
-    IntType();
+    I64();
 };
 
 struct Types {
     Types();
 
-    IntType* get_int();
+    I64* get_i64();
     FnType* fn(std::vector<Type*>&& domain, Type* codomain);
 
 private:
-    IntType* int_t_;
+    I64* i64_t_;
 };
 
 class Error : public BrmhError {
