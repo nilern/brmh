@@ -18,6 +18,21 @@ void Param::print(Names const& names, std::ostream& dest) const {
 
 Expr::Expr(Span span_, type::Type* type_) : span(span_), type(type_) {}
 
+// ## If
+
+If::If(Span span, type::Type* type, Expr* cond_, Expr* conseq_, Expr* alt_)
+    : Expr(span, type), cond(cond_), conseq(conseq_), alt(alt_) {}
+
+void If::print(Names const& names, std::ostream& dest) const {
+    dest << "if ";
+    cond->print(names, dest);
+    dest << "}\n    ";
+    conseq->print(names, dest);
+    dest << "\n} else {\n    ";
+    alt->print(names, dest);
+    dest << "\n}\n";
+}
+
 // # PrimApp
 
 AddWI64::AddWI64(Span span, type::Type *type, std::array<Expr *, 2> args) : PrimApp<2>(span, type, args) {}
@@ -90,6 +105,10 @@ void FunDef::print(Names const& names, std::ostream& dest) const {
 // # Program
 
 Param Program::param(Span span, Name name, type::Type* type) { return Param(span, name, type); }
+
+If* Program::if_(Span span, type::Type *type, Expr *cond, Expr *conseq, Expr *alt) {
+    return new(arena_.alloc<If>()) If(span, type, cond, conseq, alt);
+}
 
 AddWI64* Program::add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args){
     return new(arena_.alloc<AddWI64>()) AddWI64(span, type, args);

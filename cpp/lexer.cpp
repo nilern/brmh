@@ -95,9 +95,11 @@ optional<Lexer::Token> Lexer::lex_id() {
 
     const Lexer::Token::Type type = strncmp(chars_, "fun", size) == 0
             ? Lexer::Token::Type::FUN
-            : strncmp(chars_, "i64", size) == 0
-              ? Lexer::Token::Type::I64_T
-              : Lexer::Token::Type::ID;
+            : strncmp(chars_, "if", size) == 0
+              ? Lexer::Token::Type::IF
+              :  strncmp(chars_, "i64", size) == 0
+                ? Lexer::Token::Type::I64_T
+                : Lexer::Token::Type::ID;
     return optional(Lexer::Token {type, chars_, size, pos_});
 }
 
@@ -111,31 +113,24 @@ optional<Lexer::Token> Lexer::lex_int() {
     return optional(Lexer::Token {Lexer::Token::Type::INT, chars_, size, pos_});
 }
 
-optional<Lexer::Token> Lexer::next() {
+void Lexer::next() {
     const auto token = peek();
 
     if (token) {
         chars_ += token->size;
         pos_ = Pos(pos_.filename(), pos_.index() + token->size);
     }
-
-    return token;
 }
 
-optional<optional<Lexer::Token>> Lexer::match(Token::Type type) {
+void Lexer::match(Token::Type type) {
     const auto opt_tok = peek();
-    if (!opt_tok) {
-        return optional<optional<Lexer::Token>>();
-    } else {
+
+    if (opt_tok) {
         const auto tok = opt_tok.value();
         if (tok.typ == type) {
             chars_ += tok.size;
             pos_ = Pos(pos_.filename(), pos_.index() + tok.size);
-            return optional(optional(tok));
-        } else {
-            return optional(optional<Lexer::Token>());
         }
-
     }
 }
 

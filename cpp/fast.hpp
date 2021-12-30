@@ -9,6 +9,36 @@ namespace brmh::fast {
 
 struct Program;
 
+// # to_hossa utils
+
+struct ToHossaCont {
+    virtual bool is_trivial() const = 0;
+    virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const = 0;
+};
+
+struct ToHossaNextCont : public ToHossaCont {
+    ToHossaNextCont();
+
+    virtual bool is_trivial() const override;
+    virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const override;
+};
+
+struct ToHossaLabelCont : public ToHossaCont {
+    ToHossaLabelCont(hossa::Block*);
+
+    virtual bool is_trivial() const override;
+    virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const override;
+
+    hossa::Block* block;
+};
+
+struct ToHossaReturnCont : public ToHossaCont {
+    ToHossaReturnCont();
+
+    virtual bool is_trivial() const override;
+    virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const override;
+};
+
 // # Param
 
 struct Param {
@@ -29,13 +59,28 @@ private:
 struct Expr {
     virtual void print(Names const& names, std::ostream& dest) const = 0;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const = 0;
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const = 0;
 
     Span span;
     type::Type* type;
 
 protected:
     Expr(Span span, type::Type* type);
+};
+
+struct If : public Expr {
+    virtual void print(Names const& names, std::ostream& dest) const override;
+
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+
+    Expr* cond;
+    Expr* conseq;
+    Expr* alt;
+
+private:
+    friend struct Program;
+
+    If(Span span, type::Type* type, Expr* cond, Expr* conseq, Expr* alt);
 };
 
 template<std::size_t N>
@@ -70,7 +115,7 @@ protected:
 struct AddWI64 : public PrimApp<2> {
     virtual char const* opname() const override;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
 
 private:
     friend struct Program;
@@ -81,7 +126,7 @@ private:
 struct SubWI64 : public PrimApp<2> {
     virtual char const* opname() const override;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
 
 private:
     friend struct Program;
@@ -92,7 +137,7 @@ private:
 struct MulWI64 : public PrimApp<2> {
     virtual char const* opname() const override;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
 
 private:
     friend struct Program;
@@ -103,7 +148,7 @@ private:
 struct Id : public Expr {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
 
     Name name;
 
@@ -121,7 +166,7 @@ protected:
 struct I64 : public Const {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder) const override;
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
 
     const char* digits;
 
@@ -165,6 +210,7 @@ private:
 struct Program {
     Param param(Span span, Name name, type::Type* type);
 
+    If* if_(Span span, type::Type* type, Expr* cond, Expr* conseq, Expr* alt);
     AddWI64* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     SubWI64* sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     MulWI64* mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);

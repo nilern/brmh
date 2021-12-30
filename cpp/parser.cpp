@@ -85,6 +85,28 @@ ast::Param Parser::parse_param() {
 ast::Expr* Parser::expr() {
     const auto tok = lexer_.peek_some();
     switch (tok.typ) {
+    case Lexer::Token::Type::IF: {
+        const auto if_tok = tok;
+        lexer_.next();
+
+        ast::Expr* const cond = expr();
+
+        lexer_.match(Lexer::Token::Type::LBRACE); // Discard '{'
+
+        ast::Expr* const conseq = expr();
+
+        lexer_.match(Lexer::Token::Type::RBRACE); // Discard '}'
+        lexer_.match(Lexer::Token::Type::ELSE); // Discard "else"
+        lexer_.match(Lexer::Token::Type::LBRACE); // Discard '{'
+
+        ast::Expr* const alt = expr();
+
+        lexer_.match(Lexer::Token::Type::RBRACE); // Discard '}'
+
+        Span span{if_tok.pos, lexer_.pos()};
+        return new ast::If(span, cond, conseq, alt);
+    }
+
     case Lexer::Token::Type::PRIMOP: {
         const auto op_tok = tok;
         lexer_.next();

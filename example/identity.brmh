@@ -1,3 +1,9 @@
 fun identity (x : i64) : i64 { x }
 
-fun main () : i64 { __mulWI64(5, __subWI64(5, 1)) }
+fun main () : i64 {
+    if False {
+        13
+    } else {
+        __mulWI64(5, __subWI64(5, 1))
+    }
+}

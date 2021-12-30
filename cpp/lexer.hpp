@@ -21,7 +21,7 @@ struct Lexer {
             DOT,
             EQUALS, COLON,
             INT,
-            ID, PRIMOP, FUN, I64_T
+            ID, PRIMOP, IF, ELSE, FUN, I64_T
         };
 
         void print(std::ostream& out) const;
@@ -47,8 +47,8 @@ struct Lexer {
     Pos pos() const;
     optional<Token> peek();
     Token peek_some();
-    optional<Token> next();
-    optional<optional<Token>> match(Token::Type type);
+    void next();
+    void match(Token::Type type);
 
 private:
     optional<Token> lex_primop();

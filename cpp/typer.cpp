@@ -51,6 +51,14 @@ void ast::Param::declare(TypeEnv &env) const {
     env.declare(name, type);
 }
 
+fast::Expr* ast::If::type_of(fast::Program& program, TypeEnv& env) const {
+    fast::Expr* const typed_cond = cond->check(program, env, env.types().get_bool());
+    fast::Expr* const typed_conseq = conseq->type_of(program, env);
+    type::Type* const type = typed_conseq->type;
+    fast::Expr* const typed_alt = alt->check(program, env, type); // TODO: treat branch types equally
+    return program.if_(span, type, typed_cond, typed_conseq, typed_alt);
+}
+
 fast::Expr* ast::PrimApp::type_of(fast::Program& program, TypeEnv& env) const {
     switch (op) {
     case ast::PrimApp::Op::ADD_W_I64:
@@ -127,6 +135,8 @@ bool type::FnType::is_subtype_of(const type::Type* other) const {
 
     return codomain->is_subtype_of(other_fn->codomain);
 }
+
+bool type::Bool::is_subtype_of(const type::Type* other) const { return this == other; }
 
 bool type::I64::is_subtype_of(const type::Type* other) const { return this == other; }
 

@@ -36,6 +36,18 @@ struct Expr {
     Span span;
 };
 
+struct If : public Expr {
+    If(Span span, Expr* cond, Expr* conseq, Expr* alt);
+
+    virtual fast::Expr* type_of(fast::Program& program, TypeEnv& env) const override;
+
+    virtual void print(Names const& names, std::ostream& dest) const override;
+
+    Expr* cond;
+    Expr* conseq;
+    Expr* alt;
+};
+
 struct PrimApp : public Expr {
     enum struct Op {
         ADD_W_I64, SUB_W_I64, MUL_W_I64

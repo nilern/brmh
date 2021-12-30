@@ -88,11 +88,32 @@ void I64::print(Names&, std::ostream& dest) const {
 
 Transfer::Transfer(Span span_) : span(span_) {}
 
+If::If(Span span, Expr *cond_, Block *conseq_, Block *alt_)
+    : Transfer(span), cond(cond_), conseq(conseq_), alt(alt_) {}
+
+void If::print(Names& names, std::ostream& dest) const {
+    dest << "        if ";
+    cond->print(names, dest);
+    dest << "\n        then goto ";
+    conseq->name.print(names, dest);
+    dest << "\n        else goto ";
+    alt->name.print(names, dest);
+}
+
 Return::Return(Span span, Expr* res_) : Transfer(span), res(res_) {}
 
 void Return::print(Names& names, std::ostream& dest) const {
     dest << "        return ";
     res->print(names, dest);
+}
+
+Goto::Goto(Span span, Block* dest_, Expr* res_) : Transfer(span), dest(dest_), res(res_) {}
+
+void Goto::print(Names& names, std::ostream& desto) const {
+    desto << "        goto ";
+    dest->name.print(names, desto);
+    desto << ' ';
+    res->print(names, desto);
 }
 
 // # Program
@@ -109,13 +130,20 @@ void Program::print(Names& names, std::ostream& dest) const {
 
 // # Builder
 
-Builder::Builder(Names* names) : names_(names), arena_(), exprs_(), externs_() {}
+Builder::Builder(Names* names)
+    : names_(names), arena_(), exprs_(), externs_(), current_block_(opt_ptr<Block>::none()) {}
+
+Names *Builder::names() const { return names_; }
 
 Fn* Builder::fn(Span span, Name name, type::Type* codomain, bool external, Block* entry) {
     Fn* const res = new (arena_.alloc<Fn>()) Fn(span, name, codomain, entry);
     if (external) { externs_.push_back(res); }
     return res;
 }
+
+opt_ptr<Block> Builder::current_block() const { return current_block_; }
+
+void Builder::set_current_block(Block* block) { current_block_ = opt_ptr<Block>::some(block); }
 
 Block* Builder::block(Fn* fn, std::size_t arity, Transfer* transfer) {
     std::span<Param*> const params = std::span(static_cast<Param**>(arena_.alloc_array<Param*>(arity)), arity);
@@ -137,6 +165,12 @@ I64* Builder::const_i64(Span span, type::Type* type, const char* digits_, std::s
     strncpy(digits, digits_, size);
     return new (arena_.alloc<I64>()) I64(opt_ptr<Block>::none(), span, names_->fresh(), type, digits);
 }
+
+Transfer *Builder::if_(Span span, Expr *cond, Block *conseq, Block *alt) {
+    return new (arena_.alloc<If>()) If(span, cond, conseq, alt);
+}
+
+Transfer *Builder::goto_(Span span, Block *dest, Expr *res) { return new (arena_.alloc<Goto>()) Goto(span, dest, res); }
 
 Transfer* Builder::ret(Span span, Expr* expr) { return new (arena_.alloc<Return>()) Return(span, expr); }
 

@@ -38,6 +38,19 @@ private:
     FnType(std::vector<Type*>&& domain, Type* codomain);
 };
 
+struct Bool : public Type {
+    virtual bool is_subtype_of(const Type* other) const override;
+
+    virtual void print(Names const& names, std::ostream& dest) const override;
+
+    virtual llvm::Type* to_llvm(llvm::LLVMContext& llvm_ctx) const override;
+
+private:
+    friend struct Types;
+
+    Bool();
+};
+
 struct I64 : public Type {
     virtual bool is_subtype_of(const Type* other) const override;
 
@@ -54,11 +67,13 @@ private:
 struct Types {
     Types();
 
+    Bool* get_bool();
     I64* get_i64();
     FnType* fn(std::vector<Type*>&& domain, Type* codomain);
 
 private:
-    I64* i64_t_;
+    Bool* bool_;
+    I64* i64_;
 };
 
 class Error : public BrmhError {

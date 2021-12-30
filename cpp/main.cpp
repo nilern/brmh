@@ -102,10 +102,15 @@ int main (int argc, char const* const* argv) {
             std::cout << "Tokens\n======" << std::endl << std::endl;
 
             brmh::Lexer tokens(src);
-            for (std::optional<brmh::Lexer::Token> tok; (tok = tokens.next());) {
-                tok.value().print(std::cout);
-                std::cout << std::endl;
-            }
+            std::optional<brmh::Lexer::Token> tok;
+            do {
+                tok = tokens.peek();
+                tokens.next();
+                if (tok) {
+                    tok.value().print(std::cout);
+                    std::cout << std::endl;
+                }
+            } while (tok);
 
             std::cout << std::endl << "AST\n===" << std::endl << std::endl;
 

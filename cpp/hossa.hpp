@@ -15,6 +15,7 @@
 namespace brmh::hossa {
 
 struct Fn;
+struct Block;
 struct Expr;
 struct Param;
 struct Builder;
@@ -30,6 +31,39 @@ struct Transfer {
 
 protected:
     Transfer(Span span);
+};
+
+// ## If
+
+struct If : public Transfer {
+    void print(Names& names, std::ostream& dest) const override;
+
+    virtual void to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*> env, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+
+    Expr* cond;
+    Block* conseq;
+    Block* alt;
+
+private:
+    friend struct Builder;
+
+    If(Span span, Expr* cond, Block* conseq, Block* alt);
+};
+
+// ## Goto
+
+struct Goto : public Transfer {
+    void print(Names& names, std::ostream& dest) const override;
+
+    virtual void to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*> env, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+
+    Block* dest;
+    Expr* res;
+
+private:
+    friend struct Builder;
+
+    Goto(Span span, Block* dest, Expr* res);
 };
 
 // ## Return
@@ -212,12 +246,20 @@ private:
 struct Builder {
     Builder(Names* names);
 
+    Names* names() const;
+
     // OPTIMIZE: deduplicate constants:
 
     Fn* fn(Span span, Name name, type::Type* codomain, bool external, Block* entry);
 
+    opt_ptr<Block> current_block() const;
+    void set_current_block(Block* block);
+
     Block* block(Fn* fn, std::size_t arity, Transfer* transfer);
     Param* param(Span span, type::Type* type, Block* block, Name name, std::size_t index);
+
+    Transfer* if_(Span span, Expr* cond, Block* conseq, Block* alt);
+    Transfer* goto_(Span span, Block* dest, Expr* res);
     Transfer* ret(Span span, Expr* res);
 
     Expr* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
@@ -233,6 +275,7 @@ private:
     BumpArena arena_;
     std::unordered_map<Name, Expr*, Name::Hash> exprs_;
     std::vector<Fn*> externs_;
+    opt_ptr<Block> current_block_;
 };
 
 } // namespace brmh::hossa

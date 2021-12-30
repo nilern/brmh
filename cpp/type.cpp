@@ -36,6 +36,16 @@ llvm::Type *FnType::to_llvm(llvm::LLVMContext &llvm_ctx) const {
     return llvm::FunctionType::get(codomain->to_llvm(llvm_ctx), llvm_domain, false);
 }
 
+// ## Bool
+
+Bool::Bool() {}
+
+void Bool::print(Names const&, std::ostream& dest) const { dest << "bool"; }
+
+llvm::Type* Bool::to_llvm(llvm::LLVMContext& llvm_ctx) const {
+    return llvm::Type::getInt8Ty(llvm_ctx);
+}
+
 // ## I64
 
 I64::I64() {}
@@ -48,9 +58,11 @@ llvm::Type *I64::to_llvm(llvm::LLVMContext& llvm_ctx) const {
 
 // # Types
 
-Types::Types() : i64_t_(new I64()) {}
+Types::Types() : bool_(new Bool()), i64_(new I64()) {}
 
-I64* Types::get_i64() { return i64_t_; }
+Bool* Types::get_bool() { return bool_; }
+
+I64* Types::get_i64() { return i64_; }
 
 FnType* Types::fn(std::vector<Type*>&& domain, Type* codomain) {
     return new FnType(std::move(domain), codomain);  // OPTIMIZE

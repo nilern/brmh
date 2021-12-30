@@ -32,6 +32,7 @@ cpp/src.cpp
 cpp/src.hpp
 cpp/to_hossa.cpp
 cpp/to_llvm.cpp
+cpp/to_llvm.hpp
 cpp/type.cpp
 cpp/type.hpp
 cpp/typeenv.cpp

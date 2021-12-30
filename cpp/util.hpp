@@ -11,6 +11,11 @@ struct opt_ptr {
 
     static opt_ptr some(T* ptr) { return opt_ptr(ptr); }
 
+    T* unwrap() const {
+        assert(ptr_);
+        return ptr_;
+    }
+
     T* unwrap_or(T* alt) const { return ptr_ ? ptr_ : alt; }
 
 private:

@@ -16,6 +16,20 @@ void Param::print(Names const& names, std::ostream& dest) const {
 
 Expr::Expr(Span sp) : span(sp) {}
 
+// # If
+
+If::If(Span span_, Expr* cond_, Expr* conseq_, Expr* alt_) : Expr(span_), cond(cond_), conseq(conseq_), alt(alt_) {}
+
+void If::print(Names const& names, std::ostream& dest) const {
+    dest << "if ";
+    cond->print(names, dest);
+    dest << "}\n    ";
+    conseq->print(names, dest);
+    dest << "\n} else {\n    ";
+    alt->print(names, dest);
+    dest << "\n}\n";
+}
+
 // ## PrimApp
 
 PrimApp::PrimApp(Span sp, Op op_, std::vector<Expr*>&& args_) : Expr(sp), op(op_), args(std::move(args_)) {}
