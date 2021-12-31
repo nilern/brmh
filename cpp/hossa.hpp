@@ -2,6 +2,7 @@
 #define HOSSA_HPP
 
 #include <span>
+#include <unordered_set>
 #include <ostream>
 
 #include "llvm/IR/Module.h"
@@ -29,7 +30,7 @@ struct Builder;
 // # Transfer
 
 struct Transfer {
-    virtual void print(Names& names, std::ostream& dest) const = 0;
+    virtual void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const = 0;
 
     virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
 
@@ -42,7 +43,7 @@ protected:
 // ## If
 
 struct If : public Transfer {
-    void print(Names& names, std::ostream& dest) const override;
+    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
 
     virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
@@ -59,7 +60,7 @@ private:
 // ## Goto
 
 struct Goto : public Transfer {
-    void print(Names& names, std::ostream& dest) const override;
+    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
 
     virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
@@ -75,7 +76,7 @@ private:
 // ## Return
 
 struct Return : public Transfer {
-    void print(Names& names, std::ostream& dest) const override;
+    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
 
     virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
@@ -90,7 +91,7 @@ private:
 // # Block
 
 struct Block {
-    void print(Names& names, std::ostream& dest) const;
+    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const;
 
     llvm::BasicBlock* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
 

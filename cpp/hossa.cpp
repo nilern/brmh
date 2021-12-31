@@ -8,6 +8,8 @@ Fn::Fn(Span span_, Name name_, type::Type* codomain_, Block* entry_)
     : span(span_), name(name_), codomain(codomain_), entry(entry_) {}
 
 void Fn::print(Names& names, std::ostream& dest) const {
+    std::unordered_set<Block const*> visited;
+
     dest << "fun ";
     name.print(names, dest);
 
@@ -18,7 +20,7 @@ void Fn::print(Names& names, std::ostream& dest) const {
     dest << " {" << std::endl;
 
     dest << "    ";
-    entry->print(names, dest);
+    entry->print(names, dest, visited);
 
     dest << std::endl << '}';
 }
@@ -26,32 +28,32 @@ void Fn::print(Names& names, std::ostream& dest) const {
 Block::Block(Name name_, std::span<Param*> params_, Transfer* transfer_)
     : name(name_), params(params_), transfer(transfer_) {}
 
-void Block::print(Names& names, std::ostream& dest) const {
-    name.print(names, dest);
+void Block::print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const {
+    if (!visited.contains(this)) {
+        visited.insert(this);
+        name.print(names, dest);
 
-    dest << " (";
+        dest << " (";
 
-    auto param = params.begin();
-    if (param != params.end()) {
-        (*param)->name.print(names, dest);
-        dest << " : ";
-        (*param)->type->print(names, dest);
-        ++param;
-
-        for (; param != params.end(); ++param) {
-            dest << ", ";
+        auto param = params.begin();
+        if (param != params.end()) {
             (*param)->name.print(names, dest);
             dest << " : ";
             (*param)->type->print(names, dest);
+            ++param;
+
+            for (; param != params.end(); ++param) {
+                dest << ", ";
+                (*param)->name.print(names, dest);
+                dest << " : ";
+                (*param)->type->print(names, dest);
+            }
         }
+
+        dest << "):" << std::endl;
+
+        transfer->print(names, dest, visited);
     }
-
-    dest << ") {" << std::endl;
-
-    transfer->print(names, dest);
-    dest << ';';
-
-    dest << std::endl << "    }";
 }
 
 Expr::Expr(Span span_, Name name_, type::Type* type_)
@@ -91,29 +93,39 @@ Transfer::Transfer(Span span_) : span(span_) {}
 If::If(Span span, Expr *cond_, Block *conseq_, Block *alt_)
     : Transfer(span), cond(cond_), conseq(conseq_), alt(alt_) {}
 
-void If::print(Names& names, std::ostream& dest) const {
+void If::print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const {
     dest << "        if ";
     cond->print(names, dest);
     dest << "\n        then goto ";
     conseq->name.print(names, dest);
     dest << "\n        else goto ";
     alt->name.print(names, dest);
+
+    dest << "\n\n    ";
+
+    conseq->print(names, dest, visited);
+    dest << "\n\n    ";
+    alt->print(names, dest, visited);
 }
 
 Return::Return(Span span, Expr* res_) : Transfer(span), res(res_) {}
 
-void Return::print(Names& names, std::ostream& dest) const {
+void Return::print(Names& names, std::ostream& dest, std::unordered_set<Block const*>&) const {
     dest << "        return ";
     res->print(names, dest);
 }
 
 Goto::Goto(Span span, Block* dest_, Expr* res_) : Transfer(span), dest(dest_), res(res_) {}
 
-void Goto::print(Names& names, std::ostream& desto) const {
+void Goto::print(Names& names, std::ostream& desto, std::unordered_set<Block const*>& visited) const {
     desto << "        goto ";
     dest->name.print(names, desto);
     desto << ' ';
     res->print(names, desto);
+
+    desto << "\n\n    ";
+
+    dest->print(names, desto, visited);
 }
 
 // # Program
