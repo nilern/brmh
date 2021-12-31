@@ -92,6 +92,8 @@ private:
 struct Block {
     void print(Names& names, std::ostream& dest) const;
 
+    llvm::BasicBlock* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
+
     Fn* fn;
     Name name;
     std::span<Param*> params;

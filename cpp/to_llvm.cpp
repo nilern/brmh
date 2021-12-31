@@ -38,12 +38,22 @@ void hossa::Return::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     builder.CreateRet(res->to_llvm(ctx, builder));
 }
 
+llvm::BasicBlock* hossa::Block::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
+    auto const it = ctx.blocks.find(this);
+    if (it != ctx.blocks.end()) {
+        return it->second;
+    } else {
+        llvm::BasicBlock* const llvm_block = llvm::BasicBlock::Create(ctx.llvm_ctx, name.src_name(ctx.names).unwrap_or(""), ctx.fn);
+        ctx.blocks.insert({this, llvm_block});
+
+        builder.SetInsertPoint(llvm_block);
+        transfer->to_llvm(ctx, builder);
+
+        return llvm_block;
+    }
+}
+
 void hossa::Fn::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module, llvm::Function::LinkageTypes linkage) const {
-    ToLLVMCtx ctx(llvm_ctx);
-    llvm::IRBuilder builder(llvm_ctx);
-
-    llvm::Twine llvm_name(name.src_name(names).unwrap_or(""));
-
     std::span<Param*> params = entry->params;
     std::vector<llvm::Type*> llvm_domain(params.size());
     std::transform(params.begin(), params.end(), llvm_domain.begin(), [&] (Param* param) {
@@ -51,7 +61,11 @@ void hossa::Fn::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::M
     });
     llvm::FunctionType* const llvm_type = llvm::FunctionType::get(codomain->to_llvm(llvm_ctx), llvm_domain, false);
 
+    llvm::Twine llvm_name(name.src_name(names).unwrap_or(""));
     llvm::Function* const llvm_fn = llvm::Function::Create(llvm_type, linkage, llvm_name, module);
+
+    ToLLVMCtx ctx(names, llvm_ctx, llvm_fn);
+    llvm::IRBuilder builder(llvm_ctx);
 
     std::size_t i = 0;
     for (auto& arg : llvm_fn->args()) {
@@ -60,9 +74,7 @@ void hossa::Fn::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::M
         ctx.exprs.insert({param, &arg});
     }
 
-    llvm::BasicBlock* llvm_entry = llvm::BasicBlock::Create(ctx.llvm_ctx, entry->name.src_name(names).unwrap_or(""), llvm_fn);
-    builder.SetInsertPoint(llvm_entry);
-    entry->transfer->to_llvm(ctx, builder);
+    entry->to_llvm(ctx, builder);
 
     llvm::verifyFunction(*llvm_fn);
 }
