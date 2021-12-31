@@ -40,8 +40,10 @@ llvm::Value* hossa::Param::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
 
 void hossa::If::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
     llvm::Value* const llvm_cond = builder.CreateTrunc(cond->to_llvm(ctx, builder), llvm::Type::getInt1Ty(ctx.llvm_ctx));
+    llvm::BasicBlock* const llvm_block = builder.GetInsertBlock();
     llvm::BasicBlock* const llvm_conseq = conseq->to_llvm(ctx, builder);
     llvm::BasicBlock* const llvm_alt = alt->to_llvm(ctx, builder);
+    builder.SetInsertPoint(llvm_block);
     builder.CreateCondBr(llvm_cond, llvm_conseq, llvm_alt);
 }
 

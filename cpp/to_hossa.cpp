@@ -125,7 +125,7 @@ void fast::FunDef::to_hossa(hossa::Builder& builder) const {
     fn->entry = entry;
 
     builder.set_current_block(entry);
-    body->to_hossa(builder, fn, ToHossaNextCont());
+    body->to_hossa(builder, fn, ToHossaReturnCont());
 }
 
 hossa::Program fast::Program::to_hossa(Names& names) const {
