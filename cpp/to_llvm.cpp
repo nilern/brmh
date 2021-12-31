@@ -34,10 +34,23 @@ llvm::Value* hossa::Param::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
     return ctx.exprs.at(this);
 }
 
+void hossa::If::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
+    llvm::Value* const llvm_cond = cond->to_llvm(ctx, builder);
+    llvm::BasicBlock* const llvm_conseq = conseq->to_llvm(ctx, builder);
+    llvm::BasicBlock* const llvm_alt = alt->to_llvm(ctx, builder);
+    builder.CreateCondBr(llvm_cond, llvm_conseq, llvm_alt);
+}
+
+void hossa::Goto::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
+    llvm::BasicBlock* const llvm_dest = dest->to_llvm(ctx, builder);
+    builder.CreateBr(llvm_dest);
+}
+
 void hossa::Return::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     builder.CreateRet(res->to_llvm(ctx, builder));
 }
 
+// FIXME: Block arguments -> Phi functions
 llvm::BasicBlock* hossa::Block::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     auto const it = ctx.blocks.find(this);
     if (it != ctx.blocks.end()) {
