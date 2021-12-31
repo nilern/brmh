@@ -1,15 +1,20 @@
 #ifndef TO_LLVM_HPP
 #define TO_LLVM_HPP
 
+#include <unordered_map>
+
 #include "llvm/IR/LLVMContext.h"
+
+#include "hossa.hpp"
 
 namespace brmh {
 
-class ToLLVMCtx {
+struct ToLLVMCtx {
     llvm::LLVMContext& llvm_ctx;
+    std::unordered_map<const hossa::Expr*, llvm::Value*> exprs;
 
-public:
-    ToLLVMCtx(llvm::LLVMContext& llvm_ctx);
+    ToLLVMCtx(llvm::LLVMContext& llvm_ctx_)
+        : llvm_ctx(llvm_ctx_), exprs() {}
 };
 
 } // namespace brmh

@@ -12,6 +12,12 @@
 #include "name.hpp"
 #include "type.hpp"
 
+namespace brmh {
+
+struct ToLLVMCtx;
+
+}
+
 namespace brmh::hossa {
 
 struct Fn;
@@ -25,7 +31,7 @@ struct Builder;
 struct Transfer {
     virtual void print(Names& names, std::ostream& dest) const = 0;
 
-    virtual void to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*> env, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const = 0;
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
 
     Span span;
 
@@ -38,7 +44,7 @@ protected:
 struct If : public Transfer {
     void print(Names& names, std::ostream& dest) const override;
 
-    virtual void to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*> env, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
     Expr* cond;
     Block* conseq;
@@ -55,7 +61,7 @@ private:
 struct Goto : public Transfer {
     void print(Names& names, std::ostream& dest) const override;
 
-    virtual void to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*> env, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
     Block* dest;
     Expr* res;
@@ -71,7 +77,7 @@ private:
 struct Return : public Transfer {
     void print(Names& names, std::ostream& dest) const override;
 
-    virtual void to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*> env, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
     Expr* res;
 
@@ -120,7 +126,7 @@ private:
 struct Expr {
     virtual void print(Names& names, std::ostream& dest) const = 0;
 
-    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const = 0;
+    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
 
     opt_ptr<Block> block;
     Span span;
@@ -166,7 +172,7 @@ protected:
 struct AddWI64 : public PrimApp<2> {
     virtual const char* opname() const override;
 
-    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
 private:
     friend struct Builder;
@@ -177,7 +183,7 @@ private:
 struct SubWI64 : public PrimApp<2> {
     virtual const char* opname() const override;
 
-    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
 private:
     friend struct Builder;
@@ -188,7 +194,7 @@ private:
 struct MulWI64 : public PrimApp<2> {
     virtual const char* opname() const override;
 
-    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
 private:
     friend struct Builder;
@@ -201,7 +207,7 @@ private:
 struct Param : public Expr {
     virtual void print(Names& names, std::ostream& dest) const override;
 
-    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
 private:
     friend struct Builder;
@@ -214,7 +220,7 @@ private:
 struct I64 : public Expr {
     virtual void print(Names& names, std::ostream& dest) const override;
 
-    virtual llvm::Value* to_llvm(std::unordered_map<const hossa::Param*, llvm::Value*>, llvm::LLVMContext& llvm_ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
     const char* digits;
 
