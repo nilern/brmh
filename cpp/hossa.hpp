@@ -232,6 +232,24 @@ private:
     I64(opt_ptr<Block> block, Span span, Name name, type::Type* type, const char* digits);
 };
 
+// ## Bool
+
+struct Bool : public Expr {
+    virtual void print(Names&, std::ostream& dest) const override {
+        dest << (value ? "True" : "False");
+    }
+
+    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+
+    bool value;
+
+private:
+    friend struct Builder;
+
+    Bool(opt_ptr<Block> block, Span span, Name name, type::Type* type, bool v)
+        : Expr(block, span, name, type), value(v) {}
+};
+
 // # Program
 
 struct Program {
@@ -274,6 +292,7 @@ struct Builder {
     Expr* sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Expr* mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Expr* id(Name name);
+    Bool* const_bool(Span span, type::Type* type, bool value);
     I64* const_i64(Span span, type::Type* type, const char* chars, std::size_t size);
 
     Program build();

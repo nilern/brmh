@@ -163,6 +163,21 @@ protected:
     Const(Span span, type::Type* type);
 };
 
+struct Bool : public Const {
+    virtual void print(Names const&, std::ostream& dest) const override {
+        dest << (value ? "True" : "False");
+    }
+
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+
+    bool value;
+
+private:
+    friend struct Program;
+
+    Bool(Span span, type::Type* type, bool v) : Const(span, type), value(v) {}
+};
+
 struct I64 : public Const {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
@@ -215,6 +230,7 @@ struct Program {
     SubWI64* sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     MulWI64* mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Id* id(Span span, type::Type* type, Name name);
+    Bool* const_bool(Span span, type::Type* type, bool value);
     I64* const_i64(Span span, type::Type* type, const char* chars, std::size_t size);
 
     FunDef* fun_def(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Expr* body);

@@ -125,6 +125,10 @@ MulWI64* Program::mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> ar
 Id* Program::id(Span span, type::Type* type, Name name) {
     return new(arena_.alloc<Id>()) Id(span, type, name); }
 
+Bool *Program::const_bool(Span span, type::Type *type, bool value) {
+    return new(arena_.alloc<Bool>()) Bool(span, type, value);
+}
+
 I64* Program::const_i64(Span span, type::Type* type, const char* chars, std::size_t size) {
     return new(arena_.alloc<I64>()) I64(span, type, chars, size);
 }

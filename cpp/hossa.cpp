@@ -160,6 +160,10 @@ Param* Builder::param(Span span, type::Type* type, Block* block_, Name name, std
     return param;
 }
 
+Bool *Builder::const_bool(Span span, type::Type *type, bool value) {
+    return new (arena_.alloc<Bool>()) Bool(opt_ptr<Block>::none(), span, names_->fresh(), type, value);
+}
+
 I64* Builder::const_i64(Span span, type::Type* type, const char* digits_, std::size_t size) {
     char* digits = static_cast<char*>(arena_.alloc_array<char>(size));
     strncpy(digits, digits_, size);

@@ -23,11 +23,11 @@ If::If(Span span_, Expr* cond_, Expr* conseq_, Expr* alt_) : Expr(span_), cond(c
 void If::print(Names const& names, std::ostream& dest) const {
     dest << "if ";
     cond->print(names, dest);
-    dest << "}\n    ";
+    dest << " {\n        ";
     conseq->print(names, dest);
-    dest << "\n} else {\n    ";
+    dest << "\n    } else {\n        ";
     alt->print(names, dest);
-    dest << "\n}\n";
+    dest << "\n    }";
 }
 
 // ## PrimApp

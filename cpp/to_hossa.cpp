@@ -105,6 +105,10 @@ hossa::Expr* fast::Id::to_hossa(hossa::Builder& builder, hossa::Fn*, ToHossaCont
     return k(builder, span, builder.id(name));
 }
 
+hossa::Expr* fast::Bool::to_hossa(hossa::Builder& builder, hossa::Fn*, ToHossaCont const& k) const {
+    return k(builder, span, builder.const_bool(span, type, value));
+}
+
 hossa::Expr* fast::I64::to_hossa(hossa::Builder& builder, hossa::Fn*, ToHossaCont const& k) const {
     return k(builder, span, builder.const_i64(span, type, digits, /* OPTIMIZE: */ strlen(digits)));
 }

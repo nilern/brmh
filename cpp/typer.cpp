@@ -5,6 +5,8 @@
 #include "typeenv.hpp"
 #include "fast.hpp"
 
+// TODO: Integrate alphatization
+
 namespace brmh {
 
 fast::Program ast::Program::check(type::Types& types) {
@@ -83,6 +85,10 @@ fast::Expr* ast::PrimApp::type_of(fast::Program& program, TypeEnv& env) const {
 
     default: assert(false); // unreachable
     }
+}
+
+fast::Expr* ast::Bool::type_of(fast::Program& program, TypeEnv& env) const {
+    return program.const_bool(span, env.types().get_bool(), value);
 }
 
 fast::Expr* ast::Int::type_of(fast::Program& program, TypeEnv& env) const {

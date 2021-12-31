@@ -80,6 +80,18 @@ struct Const : public Expr {
     explicit Const(Span span);
 };
 
+struct Bool : public Const {
+    Bool(Span span, bool v) : Const(span), value(v) {}
+
+    virtual fast::Expr* type_of(fast::Program& program, TypeEnv& env) const override;
+
+    virtual void print(Names const&, std::ostream& dest) const override {
+        dest << (value ? "True" : "False");
+    }
+
+    bool value;
+};
+
 struct Int : public Const {
     Int(Span pos, const char* chars, std::size_t size);
 

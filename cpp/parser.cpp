@@ -146,6 +146,20 @@ ast::Expr* Parser::expr() {
         return new ast::Id(span, names_.sourced(tok.chars, tok.size));
     }
 
+    case Lexer::Token::Type::TRUE: {
+        lexer_.next();
+
+        Span span{tok.pos, lexer_.pos()};
+        return new ast::Bool(span, true);
+    }
+
+    case Lexer::Token::Type::FALSE: {
+        lexer_.next();
+
+        Span span{tok.pos, lexer_.pos()};
+        return new ast::Bool(span, false);
+    }
+
     case Lexer::Token::Type::INT: {
         lexer_.next();
 
