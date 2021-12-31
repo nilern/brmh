@@ -34,8 +34,8 @@ hossa::Expr* fast::ToHossaReturnCont::operator()(hossa::Builder& builder, Span s
 hossa::Expr* fast::If::to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const {
     hossa::Expr* const hossa_cond = cond->to_hossa(builder, fn, ToHossaNextCont());
 
-    hossa::Block* const conseq_block = builder.block(fn, 0, nullptr);
-    hossa::Block* const alt_block = builder.block(fn, 0, nullptr);
+    hossa::Block* const conseq_block = builder.block(0, nullptr);
+    hossa::Block* const alt_block = builder.block(0, nullptr);
     builder.current_block().unwrap()->transfer = builder.if_(span, hossa_cond, conseq_block, alt_block);
 
     // TODO: DRY:
@@ -48,7 +48,7 @@ hossa::Expr* fast::If::to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaC
 
         return nullptr; // Will not be used
     } else {
-        hossa::Block* const join = builder.block(fn, 1, nullptr);
+        hossa::Block* const join = builder.block(1, nullptr);
         hossa::Expr* result = builder.param(span, type, join, builder.names()->fresh(), 0);
         fast::ToHossaLabelCont join_k(join);
 
@@ -116,7 +116,7 @@ hossa::Expr* fast::I64::to_hossa(hossa::Builder& builder, hossa::Fn*, ToHossaCon
 void fast::FunDef::to_hossa(hossa::Builder& builder) const {
     hossa::Fn* const fn = builder.fn(span, name, codomain, /* FIXME: */ true, nullptr);
 
-    hossa::Block* const entry = builder.block(fn, params.size(), nullptr);
+    hossa::Block* const entry = builder.block(params.size(), nullptr);
     std::size_t i = 0;
     for (const Param& param : params) {
         builder.param(param.span, param.type, entry, param.name, i);

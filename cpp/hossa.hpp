@@ -94,7 +94,6 @@ struct Block {
 
     llvm::BasicBlock* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
 
-    Fn* fn;
     Name name;
     std::span<Param*> params;
     Transfer* transfer;
@@ -102,7 +101,7 @@ struct Block {
 private:
     friend struct Builder;
 
-    Block(Fn* fn, Name name, std::span<Param*> params, Transfer* transfer);
+    Block(Name name, std::span<Param*> params, Transfer* transfer);
 };
 
 // # Fn
@@ -130,13 +129,12 @@ struct Expr {
 
     virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
 
-    opt_ptr<Block> block;
     Span span;
     Name name;
     type::Type* type;
 
 protected:
-    Expr(opt_ptr<Block> block, Span span, Name name, type::Type* type);
+    Expr(Span span, Name name, type::Type* type);
 };
 
 // ## PrimApp
@@ -167,8 +165,8 @@ struct PrimApp : public Expr {
     std::array<Expr*, N> args;
 
 protected:
-    PrimApp(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, N> args_)
-        : Expr(block, span, name, type), args(args_) {}
+    PrimApp(Span span, Name name, type::Type* type, std::array<Expr*, N> args_)
+        : Expr(span, name, type), args(args_) {}
 };
 
 struct AddWI64 : public PrimApp<2> {
@@ -179,7 +177,7 @@ struct AddWI64 : public PrimApp<2> {
 private:
     friend struct Builder;
 
-    AddWI64(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, 2> args);
+    AddWI64(Span span, Name name, type::Type* type, std::array<Expr*, 2> args);
 };
 
 struct SubWI64 : public PrimApp<2> {
@@ -190,7 +188,7 @@ struct SubWI64 : public PrimApp<2> {
 private:
     friend struct Builder;
 
-    SubWI64(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, 2> args);
+    SubWI64(Span span, Name name, type::Type* type, std::array<Expr*, 2> args);
 };
 
 struct MulWI64 : public PrimApp<2> {
@@ -201,7 +199,7 @@ struct MulWI64 : public PrimApp<2> {
 private:
     friend struct Builder;
 
-    MulWI64(opt_ptr<Block> block, Span span, Name name, type::Type* type, std::array<Expr*, 2> args);
+    MulWI64(Span span, Name name, type::Type* type, std::array<Expr*, 2> args);
 };
 
 // ## Param
@@ -214,7 +212,7 @@ struct Param : public Expr {
 private:
     friend struct Builder;
 
-    Param(opt_ptr<Block> block, Span span, Name name, type::Type* type);
+    Param(Span span, Name name, type::Type* type);
 };
 
 // ## I64
@@ -229,7 +227,7 @@ struct I64 : public Expr {
 private:
     friend struct Builder;
 
-    I64(opt_ptr<Block> block, Span span, Name name, type::Type* type, const char* digits);
+    I64(Span span, Name name, type::Type* type, const char* digits);
 };
 
 // ## Bool
@@ -246,8 +244,7 @@ struct Bool : public Expr {
 private:
     friend struct Builder;
 
-    Bool(opt_ptr<Block> block, Span span, Name name, type::Type* type, bool v)
-        : Expr(block, span, name, type), value(v) {}
+    Bool(Span span, Name name, type::Type* type, bool v) : Expr(span, name, type), value(v) {}
 };
 
 // # Program
@@ -281,7 +278,7 @@ struct Builder {
     opt_ptr<Block> current_block() const;
     void set_current_block(Block* block);
 
-    Block* block(Fn* fn, std::size_t arity, Transfer* transfer);
+    Block* block(std::size_t arity, Transfer* transfer);
     Param* param(Span span, type::Type* type, Block* block, Name name, std::size_t index);
 
     Transfer* if_(Span span, Expr* cond, Block* conseq, Block* alt);
