@@ -8,6 +8,18 @@
 
 namespace brmh {
 
+llvm::Value* hossa::Call::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
+    llvm::Value* const llvm_callee = callee->to_llvm(ctx, builder);
+
+    std::vector<llvm::Value*> llvm_args;
+    llvm_args.reserve(args.size());
+    std::transform(args.begin(), args.end(), llvm_args.begin(), [&] (hossa::Expr* arg) {
+        return arg->to_llvm(ctx, builder);
+    });
+
+    return builder.CreateCall(static_cast<llvm::FunctionType*>(llvm_callee->getType()), llvm_callee, llvm_args);
+}
+
 llvm::Value* hossa::AddWI64::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     auto l = args[0]->to_llvm(ctx, builder);
     auto r = args[1]->to_llvm(ctx, builder);
@@ -55,6 +67,19 @@ void hossa::If::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
     builder.CreateCondBr(llvm_cond, llvm_conseq, llvm_alt);
 }
 
+// TODO: Ensure TCO:
+void hossa::TailCall::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
+    llvm::Value* const llvm_callee = callee->to_llvm(ctx, builder);
+
+    std::vector<llvm::Value*> llvm_args;
+    llvm_args.reserve(args.size());
+    std::transform(args.begin(), args.end(), llvm_args.begin(), [&] (hossa::Expr* arg) {
+        return arg->to_llvm(ctx, builder);
+    });
+
+    builder.CreateCall(static_cast<llvm::FunctionType*>(llvm_callee->getType()), llvm_callee, llvm_args);
+}
+
 void hossa::Goto::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
     llvm::BasicBlock* const llvm_dest = dest->to_llvm(ctx, builder);
     builder.CreateBr(llvm_dest);
@@ -80,7 +105,7 @@ llvm::BasicBlock* hossa::Block::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& build
     }
 }
 
-void hossa::Fn::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module, llvm::Function::LinkageTypes linkage) const {
+void hossa::Fn::llvm_declare(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module, llvm::Function::LinkageTypes linkage) const {
     std::span<Param*> params = entry->params;
     std::vector<llvm::Type*> llvm_domain(params.size());
     std::transform(params.begin(), params.end(), llvm_domain.begin(), [&] (Param* param) {
@@ -89,15 +114,23 @@ void hossa::Fn::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::M
     llvm::FunctionType* const llvm_type = llvm::FunctionType::get(codomain->to_llvm(llvm_ctx), llvm_domain, false);
 
     llvm::Twine llvm_name(name.src_name(names).unwrap_or(""));
-    llvm::Function* const llvm_fn = llvm::Function::Create(llvm_type, linkage, llvm_name, module);
+    llvm::Function* llvm_fn = llvm::Function::Create(llvm_type, linkage, llvm_name, module);
 
+    std::size_t i = 0;
+    for (auto& arg : llvm_fn->args()) {
+        Param* const param = entry->params[i++];
+        arg.setName(llvm::Twine(param->name.src_name(names).unwrap_or("")));
+    }
+}
+
+void hossa::Fn::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const {
+    llvm::Function* const llvm_fn = module.getFunction(name.src_name(names).unwrap_or(""));
     ToLLVMCtx ctx(names, llvm_ctx, llvm_fn);
     llvm::IRBuilder builder(llvm_ctx);
 
     std::size_t i = 0;
     for (auto& arg : llvm_fn->args()) {
-        Param* const param = params[i++];
-        arg.setName(llvm::Twine(param->name.src_name(names).unwrap_or("")));
+        Param* const param = entry->params[i++];
         ctx.exprs.insert({param, &arg});
     }
 
@@ -108,7 +141,11 @@ void hossa::Fn::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::M
 
 void hossa::Program::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const {
     for (hossa::Fn* const ext_fn : externs) {
-        ext_fn->to_llvm(names, llvm_ctx, module, llvm::Function::ExternalLinkage);
+        ext_fn->llvm_declare(names, llvm_ctx, module, llvm::Function::ExternalLinkage);
+    }
+
+    for (hossa::Fn* const ext_fn : externs) {
+        ext_fn->to_llvm(names, llvm_ctx, module);
     }
 }
 
