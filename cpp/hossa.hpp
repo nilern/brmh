@@ -13,6 +13,8 @@
 #include "name.hpp"
 #include "type.hpp"
 
+// FIXME: Printing should display sharing in the dataflow DAG instead of treating it as a tree
+
 namespace brmh {
 
 struct ToLLVMCtx;
@@ -21,72 +23,9 @@ struct ToLLVMCtx;
 
 namespace brmh::hossa {
 
-struct Fn;
-struct Block;
-struct Expr;
 struct Param;
 struct Builder;
-
-// # Transfer
-
-struct Transfer {
-    virtual void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const = 0;
-
-    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
-
-    Span span;
-
-protected:
-    Transfer(Span span);
-};
-
-// ## If
-
-struct If : public Transfer {
-    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
-
-    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
-
-    Expr* cond;
-    Block* conseq;
-    Block* alt;
-
-private:
-    friend struct Builder;
-
-    If(Span span, Expr* cond, Block* conseq, Block* alt);
-};
-
-// ## Goto
-
-struct Goto : public Transfer {
-    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
-
-    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
-
-    Block* dest;
-    Expr* res;
-
-private:
-    friend struct Builder;
-
-    Goto(Span span, Block* dest, Expr* res);
-};
-
-// ## Return
-
-struct Return : public Transfer {
-    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
-
-    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
-
-    Expr* res;
-
-private:
-    friend struct Builder;
-
-    Return(Span span, Expr* res);
-};
+struct Transfer;
 
 // # Block
 
@@ -136,6 +75,40 @@ struct Expr {
 
 protected:
     Expr(Span span, Name name, type::Type* type);
+};
+
+// ## Call
+
+struct Call : public Expr {
+    Expr* callee;
+    std::span<Expr*> args;
+
+    virtual void print(Names& names, std::ostream& dest) const override {
+        callee->print(names, dest);
+
+        dest << '(';
+
+        auto arg = args.begin();
+        if (arg != args.end()) {
+            (*arg)->print(names, dest);
+            ++arg;
+
+            for (; arg != args.end(); ++arg) {
+                dest << ", ";
+                (*arg)->print(names, dest);
+            }
+        }
+
+        dest << ')';
+    }
+
+    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+
+private:
+    friend struct Builder;
+
+    Call(Span span, Name name, type::Type* type, Expr* callee_, std::span<Expr*> args_)
+        : Expr(span, name, type), callee(callee_), args(args_) {}
 };
 
 // ## PrimApp
@@ -259,6 +232,101 @@ private:
     Bool(Span span, Name name, type::Type* type, bool v) : Expr(span, name, type), value(v) {}
 };
 
+// # Transfer
+
+struct Transfer {
+    virtual void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const = 0;
+
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
+
+    Span span;
+
+protected:
+    Transfer(Span span);
+};
+
+// ## If
+
+struct If : public Transfer {
+    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
+
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+
+    Expr* cond;
+    Block* conseq;
+    Block* alt;
+
+private:
+    friend struct Builder;
+
+    If(Span span, Expr* cond, Block* conseq, Block* alt);
+};
+
+// ## TailCall
+
+struct TailCall : public Transfer {
+    Expr* callee;
+    std::span<Expr*> args;
+
+    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>&) const override {
+        callee->print(names, dest);
+
+        dest << '(';
+
+        auto arg = args.begin();
+        if (arg != args.end()) {
+            (*arg)->print(names, dest);
+            ++arg;
+
+            for (; arg != args.end(); ++arg) {
+                dest << ", ";
+                (*arg)->print(names, dest);
+            }
+        }
+
+        dest << ')';
+    }
+
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+
+private:
+    friend struct Builder;
+
+    TailCall(Span span, Expr* callee_, std::span<Expr*> args_)
+        : Transfer(span), callee(callee_), args(args_) {}
+};
+
+// ## Goto
+
+struct Goto : public Transfer {
+    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
+
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+
+    Block* dest;
+    Expr* res;
+
+private:
+    friend struct Builder;
+
+    Goto(Span span, Block* dest, Expr* res);
+};
+
+// ## Return
+
+struct Return : public Transfer {
+    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
+
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+
+    Expr* res;
+
+private:
+    friend struct Builder;
+
+    Return(Span span, Expr* res);
+};
+
 // # Program
 
 struct Program {
@@ -293,10 +361,20 @@ struct Builder {
     Block* block(std::size_t arity, Transfer* transfer);
     Param* param(Span span, type::Type* type, Block* block, Name name, std::size_t index);
 
+    std::span<Expr*> args(std::size_t arity) {
+        return std::span<Expr*>(static_cast<Expr**>(arena_.alloc_array<Expr*>(arity)), arity);
+    }
+
     Transfer* if_(Span span, Expr* cond, Block* conseq, Block* alt);
+    Transfer* tail_call(Span span, Expr* callee, std::span<Expr*> args) {
+        return new (arena_.alloc<TailCall>()) TailCall(span, callee, args);
+    }
     Transfer* goto_(Span span, Block* dest, Expr* res);
     Transfer* ret(Span span, Expr* res);
 
+    Expr* call(Span span, type::Type* type, Expr* callee, std::span<Expr*> args) {
+        return new (arena_.alloc<Call>()) Call(span, names_->fresh(), type, callee, args);
+    }
     Expr* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Expr* sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Expr* mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);

@@ -7,6 +7,8 @@ namespace brmh {
 
 fast::ToHossaNextCont::ToHossaNextCont() : ToHossaCont() {}
 
+bool fast::ToHossaNextCont::is_tail() const { return false; }
+
 bool fast::ToHossaNextCont::is_trivial() const { return false; }
 
 hossa::Expr* fast::ToHossaNextCont::operator()(hossa::Builder&, Span, hossa::Expr* v) const {
@@ -14,6 +16,8 @@ hossa::Expr* fast::ToHossaNextCont::operator()(hossa::Builder&, Span, hossa::Exp
 }
 
 fast::ToHossaLabelCont::ToHossaLabelCont(hossa::Block* block_) : ToHossaCont(), block(block_) {}
+
+bool fast::ToHossaLabelCont::is_tail() const { return false; }
 
 bool fast::ToHossaLabelCont::is_trivial() const { return true; }
 
@@ -23,6 +27,8 @@ hossa::Expr* fast::ToHossaLabelCont::operator()(hossa::Builder& builder, Span sp
 }
 
 fast::ToHossaReturnCont::ToHossaReturnCont() : ToHossaCont() {}
+
+bool fast::ToHossaReturnCont::is_tail() const { return true; }
 
 bool fast::ToHossaReturnCont::is_trivial() const { return true; }
 
@@ -60,6 +66,24 @@ hossa::Expr* fast::If::to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaC
 
         builder.set_current_block(join);
         return result;
+    }
+}
+
+hossa::Expr* fast::Call::to_hossa(hossa::Builder &builder, hossa::Fn *fn, const ToHossaCont &k) const {
+    hossa::Expr* const hossa_callee = callee->to_hossa(builder, fn, k);
+
+    std::span<hossa::Expr*> hossa_args = builder.args(args.size());
+
+    for (std::size_t i = 0; i < args.size(); ++i) {
+        hossa_args[i] = args[i]->to_hossa(builder, fn, ToHossaNextCont());
+    }
+
+    if (k.is_tail()) {
+        builder.current_block().unwrap()->transfer = builder.tail_call(span, hossa_callee, hossa_args);
+        return nullptr; // Will not be used
+    } else {
+        hossa::Expr* const hossa_call = builder.call(span, type, hossa_callee, hossa_args);
+        return k(builder, span, hossa_call);
     }
 }
 

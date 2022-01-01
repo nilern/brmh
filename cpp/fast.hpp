@@ -12,6 +12,7 @@ struct Program;
 // # to_hossa utils
 
 struct ToHossaCont {
+    virtual bool is_tail() const = 0;
     virtual bool is_trivial() const = 0;
     virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const = 0;
 };
@@ -19,6 +20,7 @@ struct ToHossaCont {
 struct ToHossaNextCont : public ToHossaCont {
     ToHossaNextCont();
 
+    virtual bool is_tail() const override;
     virtual bool is_trivial() const override;
     virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const override;
 };
@@ -26,6 +28,7 @@ struct ToHossaNextCont : public ToHossaCont {
 struct ToHossaLabelCont : public ToHossaCont {
     ToHossaLabelCont(hossa::Block*);
 
+    virtual bool is_tail() const override;
     virtual bool is_trivial() const override;
     virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const override;
 
@@ -35,6 +38,7 @@ struct ToHossaLabelCont : public ToHossaCont {
 struct ToHossaReturnCont : public ToHossaCont {
     ToHossaReturnCont();
 
+    virtual bool is_tail() const override;
     virtual bool is_trivial() const override;
     virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const override;
 };
