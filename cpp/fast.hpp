@@ -145,6 +145,17 @@ private:
     MulWI64(Span span, type::Type* type, std::array<Expr*, 2> args);
 };
 
+struct EqI64 : public PrimApp<2> {
+    virtual char const* opname() const override { return "eqI64"; }
+
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+
+private:
+    friend struct Program;
+
+    EqI64(Span span, type::Type* type, std::array<Expr*, 2> args) : PrimApp(span, type, args) {}
+};
+
 struct Id : public Expr {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
@@ -229,6 +240,11 @@ struct Program {
     AddWI64* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     SubWI64* sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     MulWI64* mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
+
+    EqI64* eq_i64(Span span, type::Type* type, std::array<Expr*, 2> args) {
+        return new(arena_.alloc<EqI64>()) EqI64(span, type, args);
+    }
+
     Id* id(Span span, type::Type* type, Name name);
     Bool* const_bool(Span span, type::Type* type, bool value);
     I64* const_i64(Span span, type::Type* type, const char* chars, std::size_t size);

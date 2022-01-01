@@ -203,6 +203,17 @@ private:
     MulWI64(Span span, Name name, type::Type* type, std::array<Expr*, 2> args);
 };
 
+struct EqI64 : public PrimApp<2> {
+    virtual const char* opname() const override { return "eqI64"; }
+
+    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+
+private:
+    friend struct Builder;
+
+    EqI64(Span span, Name name, type::Type* type, std::array<Expr*, 2> args) : PrimApp(span, name, type, args) {}
+};
+
 // ## Param
 
 struct Param : public Expr {
@@ -289,6 +300,11 @@ struct Builder {
     Expr* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Expr* sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Expr* mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
+
+    Expr* eq_i64(Span span, type::Type* type, std::array<Expr*, 2> args) {
+        return new (arena_.alloc<EqI64>()) EqI64(span, names_->fresh(), type, args);
+    }
+
     Expr* id(Name name);
     Bool* const_bool(Span span, type::Type* type, bool value);
     I64* const_i64(Span span, type::Type* type, const char* chars, std::size_t size);

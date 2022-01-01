@@ -111,13 +111,16 @@ ast::Expr* Parser::expr() {
         const auto op_tok = tok;
         lexer_.next();
 
+        // TODO: Check op existence in typing, not parsing:
         ast::PrimApp::Op const op = strncmp(op_tok.chars, "__addWI64", op_tok.size) == 0
                 ? ast::PrimApp::Op::ADD_W_I64
                 : strncmp(op_tok.chars, "__subWI64", op_tok.size) == 0
                   ? ast::PrimApp::Op::SUB_W_I64
                   : strncmp(op_tok.chars, "__mulWI64", op_tok.size) == 0
-                    ? ast::PrimApp::Op::MUL_W_I64
-                    :  throw Error(op_tok.pos);
+                    ? ast::PrimApp::Op::SUB_W_I64
+                    : strncmp(op_tok.chars, "__eqI64", op_tok.size) == 0
+                      ? ast::PrimApp::Op::EQ_I64
+                      :  throw Error(op_tok.pos);
 
         std::vector<ast::Expr*> args;
         lexer_.match(Lexer::Token::Type::LPAREN); // Discard '('
@@ -174,6 +177,11 @@ ast::Expr* Parser::expr() {
 type::Type* Parser::parse_type() {
     const auto tok = lexer_.peek_some();
     switch (tok.typ) {
+    case Lexer::Token::Type::BOOL: {
+        lexer_.next();
+        return types_.get_bool();
+    }
+
     case Lexer::Token::Type::I64_T: {
         lexer_.next();
         return types_.get_i64();

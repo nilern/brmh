@@ -26,12 +26,19 @@ llvm::Value* hossa::MulWI64::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder)
     return builder.CreateMul(l, r);
 }
 
+llvm::Value* hossa::EqI64::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
+    auto l = args[0]->to_llvm(ctx, builder);
+    auto r = args[1]->to_llvm(ctx, builder);
+    llvm::Value* const bit = builder.CreateICmpEQ(l, r);
+    return builder.CreateZExt(bit, type->to_llvm(ctx.llvm_ctx));
+}
+
 llvm::Value* hossa::Bool::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
-    return llvm::ConstantInt::get(llvm::Type::getInt8Ty(ctx.llvm_ctx), value);
+    return llvm::ConstantInt::get(type->to_llvm(ctx.llvm_ctx), value);
 }
 
 llvm::Value* hossa::I64::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
-    return llvm::ConstantInt::get(llvm::Type::getInt64Ty(ctx.llvm_ctx), /* FIXME: do this in typechecking, with range checking: */ atol(digits));
+    return llvm::ConstantInt::get(type->to_llvm(ctx.llvm_ctx), /* FIXME: do this in typechecking, with range checking: */ atol(digits));
 }
 
 llvm::Value* hossa::Param::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
@@ -39,7 +46,8 @@ llvm::Value* hossa::Param::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
 }
 
 void hossa::If::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
-    llvm::Value* const llvm_cond = builder.CreateTrunc(cond->to_llvm(ctx, builder), llvm::Type::getInt1Ty(ctx.llvm_ctx));
+    llvm::Value* const bit_cond = cond->to_llvm(ctx, builder);
+    llvm::Value* const llvm_cond = builder.CreateTrunc(bit_cond, llvm::Type::getInt1Ty(ctx.llvm_ctx));
     llvm::BasicBlock* const llvm_block = builder.GetInsertBlock();
     llvm::BasicBlock* const llvm_conseq = conseq->to_llvm(ctx, builder);
     llvm::BasicBlock* const llvm_alt = alt->to_llvm(ctx, builder);

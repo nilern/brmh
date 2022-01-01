@@ -101,6 +101,18 @@ hossa::Expr* fast::MulWI64::to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToH
     return k(builder, span, builder.mul_w_i64(span, type, hossa_args));
 }
 
+hossa::Expr* fast::EqI64::to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const {
+    // FIXME: brittle '2':s:
+
+    std::array<hossa::Expr*, 2> hossa_args;
+
+    for (std::size_t i = 0; i < 2; ++i) {
+        hossa_args[i] = args[i]->to_hossa(builder, fn, ToHossaNextCont());
+    }
+
+    return k(builder, span, builder.eq_i64(span, type, hossa_args));
+}
+
 hossa::Expr* fast::Id::to_hossa(hossa::Builder& builder, hossa::Fn*, ToHossaCont const& k) const {
     return k(builder, span, builder.id(name));
 }

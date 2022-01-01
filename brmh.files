@@ -39,4 +39,4 @@ cpp/typeenv.hpp
 cpp/typer.cpp
 cpp/util.cpp
 cpp/util.hpp
-example/identity.brmh
+example/fact.brmh

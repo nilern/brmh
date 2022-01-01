@@ -50,7 +50,8 @@ struct If : public Expr {
 
 struct PrimApp : public Expr {
     enum struct Op {
-        ADD_W_I64, SUB_W_I64, MUL_W_I64
+        ADD_W_I64, SUB_W_I64, MUL_W_I64,
+        EQ_I64
     };
 
     PrimApp(Span span, Op op, std::vector<Expr*>&& args);

@@ -103,8 +103,10 @@ optional<Lexer::Token> Lexer::lex_id() {
                   ? Lexer::Token::Type::TRUE
                   : strncmp(chars_, "False", size) == 0
                     ? Lexer::Token::Type::FALSE
-                    : strncmp(chars_, "i64", size) == 0
-                      ? Lexer::Token::Type::I64_T
+                    : strncmp(chars_, "bool", size) == 0
+                      ? Lexer::Token::Type::BOOL
+                      : strncmp(chars_, "i64", size) == 0
+                        ? Lexer::Token::Type::I64_T
                       : Lexer::Token::Type::ID;
     return optional(Lexer::Token {type, chars_, size, pos_});
 }
