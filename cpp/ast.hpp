@@ -48,6 +48,35 @@ struct If : public Expr {
     Expr* alt;
 };
 
+struct Call : public Expr {
+    Expr* callee;
+    std::vector<Expr*> args;
+
+    Call(Span span, Expr* callee_, std::vector<Expr*>&& args_)
+        : Expr(span), callee(callee_), args(std::move(args_)) {}
+
+    virtual fast::Expr* type_of(fast::Program& program, TypeEnv& env) const override;
+
+    virtual void print(Names const& names, std::ostream& dest) const override {
+        callee->print(names, dest);
+
+        dest << '(';
+
+        auto arg = args.begin();
+        if (arg != args.end()) {
+            (*arg)->print(names, dest);
+            ++arg;
+
+            for (; arg != args.end(); ++arg) {
+                dest << ", ";
+                (*arg)->print(names, dest);
+            }
+        }
+
+        dest << ')';
+    }
+};
+
 struct PrimApp : public Expr {
     enum struct Op {
         ADD_W_I64, SUB_W_I64, MUL_W_I64,

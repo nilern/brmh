@@ -27,6 +27,8 @@ struct Parser {
     type::Type* parse_type();
 
 private:
+    ast::Expr* parse_callee();
+    std::vector<ast::Expr*> parse_arglist();
     Name parse_id();
     ast::Param parse_param();
     std::vector<ast::Def*> parse_defs();

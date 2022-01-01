@@ -82,7 +82,41 @@ ast::Param Parser::parse_param() {
     return ast::Param{Span{start_pos, end_pos}, name, type};
 }
 
+// expr ::= callee arglist*
 ast::Expr* Parser::expr() {
+    ast::Expr* expr = parse_callee();
+    Pos const start_pos = expr->span.start;
+
+    while (lexer_.peek_some().typ == Lexer::Token::Type::LPAREN) {
+        std::vector<ast::Expr*> args = parse_arglist();
+        const Pos end_pos = lexer_.pos();
+        expr = new ast::Call(Span{start_pos, end_pos}, expr, std::move(args));
+    }
+
+    return expr;
+}
+
+std::vector<ast::Expr*> Parser::parse_arglist() {
+    std::vector<ast::Expr*> args;
+    lexer_.match(Lexer::Token::Type::LPAREN); // Discard '('
+
+    if (lexer_.peek_some().typ == Lexer::Token::Type::RPAREN) {
+        lexer_.next(); // Discard ')'
+    } else {
+        args.push_back(expr());
+
+        while (lexer_.peek_some().typ == Lexer::Token::Type::COMMA) {
+            lexer_.next(); // Discard ','
+            args.push_back(expr());
+        }
+
+        lexer_.match(Lexer::Token::Type::RPAREN); // Discard ')'
+    }
+
+    return args;
+}
+
+ast::Expr* Parser::parse_callee() {
     const auto tok = lexer_.peek_some();
     switch (tok.typ) {
     case Lexer::Token::Type::IF: {
@@ -122,21 +156,7 @@ ast::Expr* Parser::expr() {
                       ? ast::PrimApp::Op::EQ_I64
                       :  throw Error(op_tok.pos);
 
-        std::vector<ast::Expr*> args;
-        lexer_.match(Lexer::Token::Type::LPAREN); // Discard '('
-
-        if (lexer_.peek_some().typ == Lexer::Token::Type::RPAREN) {
-            lexer_.next(); // Discard ')'
-        } else {
-            args.push_back(expr());
-
-            while (lexer_.peek_some().typ == Lexer::Token::Type::COMMA) {
-                lexer_.next(); // Discard ','
-                args.push_back(expr());
-            }
-
-            lexer_.match(Lexer::Token::Type::RPAREN); // Discard ')'
-        }
+        std::vector<ast::Expr*> args = parse_arglist();
 
         Span span{op_tok.pos, lexer_.pos()};
         return new ast::PrimApp(span, op, std::move(args));
