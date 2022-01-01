@@ -83,6 +83,38 @@ private:
     If(Span span, type::Type* type, Expr* cond, Expr* conseq, Expr* alt);
 };
 
+struct Call : public Expr {
+    Expr* callee;
+    std::span<Expr*> args;
+
+    virtual void print(Names const& names, std::ostream& dest) const override {
+        callee->print(names, dest);
+
+        dest << '(';
+
+        auto arg = args.begin();
+        if (arg != args.end()) {
+            (*arg)->print(names, dest);
+            ++arg;
+
+            for (; arg != args.end(); ++arg) {
+                dest << ", ";
+                (*arg)->print(names, dest);
+            }
+        }
+
+        dest << ')';
+    }
+
+    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+
+private:
+    friend struct Program;
+
+    Call(Span span, type::Type* type, Expr* callee_, std::span<Expr*> args_)
+        : Expr(span, type), callee(callee_), args(args_) {}
+};
+
 template<std::size_t N>
 struct PrimApp : public Expr {
     virtual void print(Names const& names, std::ostream& dest) const override {
@@ -237,6 +269,15 @@ struct Program {
     Param param(Span span, Name name, type::Type* type);
 
     If* if_(Span span, type::Type* type, Expr* cond, Expr* conseq, Expr* alt);
+
+    std::span<Expr*> args(std::size_t arity) {
+        return std::span<Expr*>(static_cast<Expr**>(arena_.alloc_array<Expr*>(arity)), arity);
+    }
+
+    Call* call(Span span, type::Type* type, Expr* callee, std::span<Expr*> args) {
+        return new (arena_.alloc<Call>()) Call(span, type, callee, args);
+    }
+
     AddWI64* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     SubWI64* sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     MulWI64* mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);

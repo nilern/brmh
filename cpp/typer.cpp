@@ -61,6 +61,22 @@ fast::Expr* ast::If::type_of(fast::Program& program, TypeEnv& env) const {
     return program.if_(span, type, typed_cond, typed_conseq, typed_alt);
 }
 
+fast::Expr* ast::Call::type_of(fast::Program &program, TypeEnv &env) const {
+    fast::Expr* const typed_callee = callee->type_of(program, env);
+
+    type::FnType* const callee_type = dynamic_cast<type::FnType*>(typed_callee->type); // OPTIMIZE
+    if (!callee_type) { throw type::Error(span); }
+
+    if (args.size() != callee_type->domain.size()) { throw type::Error(span); }
+    std::size_t arity = callee_type->domain.size();
+    std::span<fast::Expr*> typed_args = program.args(arity);
+    for (std::size_t i = 0; i < arity; ++i) {
+        typed_args[i] = args[i]->check(program, env, callee_type->domain[i]);
+    }
+
+    return program.call(span, callee_type->codomain, typed_callee, typed_args);
+}
+
 fast::Expr* ast::PrimApp::type_of(fast::Program& program, TypeEnv& env) const {
     switch (op) {
     case ast::PrimApp::Op::ADD_W_I64:
