@@ -29,7 +29,6 @@
 
 #include "fast.cpp"
 
-#include "typeenv.cpp"
 #include "typer.cpp"
 
 #include "hossa.cpp"
@@ -123,7 +122,7 @@ int main (int argc, char const* const* argv) {
 
             std::cout << "F-AST\n=====" << std::endl << std::endl;
 
-            brmh::fast::Program typed_program = program.check(types);
+            brmh::fast::Program typed_program = program.check(names, types);
             typed_program.print(names, std::cout);
 
             std::cout << "HO-SSA\n======" << std::endl << std::endl;

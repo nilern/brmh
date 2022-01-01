@@ -18,7 +18,7 @@ struct Param {
     Name name;
     type::Type* type;
 
-    void declare(TypeEnv& env) const;
+    Name declare(TypeEnv& env) const;
 
     void print(Names const& names, std::ostream& dest) const;
 };
@@ -136,7 +136,7 @@ struct FunDef : public Def {
 struct Program {
     explicit Program(std::vector<Def*>&& defs);
 
-    fast::Program check(type::Types& types);
+    fast::Program check(Names& names, type::Types& types);
 
     void print(Names const& names, std::ostream& dest) const;
 

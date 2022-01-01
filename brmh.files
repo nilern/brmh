@@ -35,7 +35,6 @@ cpp/to_llvm.cpp
 cpp/to_llvm.hpp
 cpp/type.cpp
 cpp/type.hpp
-cpp/typeenv.cpp
 cpp/typeenv.hpp
 cpp/typer.cpp
 cpp/util.cpp

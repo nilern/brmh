@@ -5,13 +5,11 @@
 #include "typeenv.hpp"
 #include "fast.hpp"
 
-// TODO: Integrate alphatization
-
 namespace brmh {
 
-fast::Program ast::Program::check(type::Types& types) {
+fast::Program ast::Program::check(Names& names, type::Types& types) {
     fast::Program program;
-    TypeEnv env(types);
+    TypeEnv env(names, types);
 
     for (auto def : defs) {
         def->declare(env);
@@ -29,16 +27,18 @@ void ast::FunDef::declare(TypeEnv &env) {
 }
 
 fast::Def* ast::FunDef::check(fast::Program& program, TypeEnv& parent_env) {
+    Name const unique_name = parent_env.find(name).value().first;
+
     TypeEnv env = parent_env.push_params();
     std::vector<fast::Param> new_params;
     for (const Param& param : params) {
-        param.declare(env);
-        new_params.push_back(program.param(param.span, param.name, param.type));
+        Name const unique_name = param.declare(env);
+        new_params.push_back(program.param(param.span, unique_name, param.type));
     }
 
     fast::Expr* typed_body = body->check(program, env, codomain);
 
-    return program.fun_def(span, name, std::move(new_params), codomain, typed_body);
+    return program.fun_def(span, unique_name, std::move(new_params), codomain, typed_body);
 }
 
 std::vector<type::Type*> ast::FunDef::domain() const {
@@ -49,8 +49,8 @@ std::vector<type::Type*> ast::FunDef::domain() const {
     return res;
 }
 
-void ast::Param::declare(TypeEnv &env) const {
-    env.declare(name, type);
+Name ast::Param::declare(TypeEnv &env) const {
+    return env.declare(name, type);
 }
 
 fast::Expr* ast::If::type_of(fast::Program& program, TypeEnv& env) const {
@@ -96,9 +96,9 @@ fast::Expr* ast::Int::type_of(fast::Program& program, TypeEnv& env) const {
 }
 
 fast::Expr* ast::Id::type_of(fast::Program& program, TypeEnv& env) const {
-    std::optional<type::Type*> optType = env.find(name);
-    if (optType) {
-        return program.id(span, *optType, name);
+    std::optional<std::pair<Name, type::Type*>> opt_binder = env.find(name);
+    if (opt_binder) {
+        return program.id(span, opt_binder->second, opt_binder->first);
     } else {
         throw type::Error(span);
     }
