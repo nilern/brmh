@@ -23,45 +23,9 @@ struct ToLLVMCtx;
 
 namespace brmh::hossa {
 
-struct Param;
+struct Block;
+struct Fn;
 struct Builder;
-struct Transfer;
-
-// # Block
-
-struct Block {
-    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const;
-
-    llvm::BasicBlock* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
-
-    Name name;
-    std::span<Param*> params;
-    Transfer* transfer;
-
-private:
-    friend struct Builder;
-
-    Block(Name name, std::span<Param*> params, Transfer* transfer);
-};
-
-// # Fn
-
-struct Fn {
-    void print(Names& names, std::ostream& dest) const;
-
-    void llvm_declare(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module, llvm::Function::LinkageTypes linkage) const;
-    void to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const;
-
-    Span span;
-    Name name;
-    type::Type* codomain;
-    Block* entry;
-
-private:
-    friend struct Builder;
-
-    Fn(Span span, Name name, type::Type* codomain, Block* entry);
-};
 
 // # Expr
 
@@ -343,6 +307,42 @@ private:
     Program(BumpArena&& arena, std::vector<Fn*>&& externs);
 
     BumpArena arena_;
+};
+
+// # Block
+
+struct Block {
+    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const;
+
+    llvm::BasicBlock* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
+
+    Name name;
+    std::span<Param*> params;
+    Transfer* transfer;
+
+private:
+    friend struct Builder;
+
+    Block(Name name, std::span<Param*> params, Transfer* transfer);
+};
+
+// # Fn
+
+struct Fn {
+    void print(Names& names, std::ostream& dest) const;
+
+    void llvm_declare(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module, llvm::Function::LinkageTypes linkage) const;
+    void to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const;
+
+    Span span;
+    Name name;
+    type::Type* codomain;
+    Block* entry;
+
+private:
+    friend struct Builder;
+
+    Fn(Span span, Name name, type::Type* codomain, Block* entry);
 };
 
 // # Builder
