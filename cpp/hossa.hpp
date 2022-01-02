@@ -234,6 +234,7 @@ struct TailCall : public Transfer {
     std::span<Expr*> args;
 
     void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>&) const override {
+        dest << "        tailcall ";
         callee->print(names, dest);
 
         dest << '(';
@@ -334,6 +335,7 @@ struct Fn : public Expr {
     virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
     void print(Names& names, std::ostream& dest) const override;
+    void print_def(Names& names, std::ostream& dest) const;
 
     void llvm_declare(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module, llvm::Function::LinkageTypes linkage) const;
     void llvm_define(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const;
@@ -355,6 +357,7 @@ struct Builder {
     // OPTIMIZE: deduplicate constants:
 
     Fn* fn(Span span, Name name, type::FnType* type, bool external, Block* entry);
+    Fn* get_fn(Name name) const { return static_cast<Fn*>(exprs_.at(name)); }
 
     opt_ptr<Block> current_block() const;
     void set_current_block(Block* block);

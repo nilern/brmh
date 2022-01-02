@@ -243,6 +243,7 @@ private:
 struct Def {
     virtual void print(Names const& names, std::ostream& dest) const = 0;
 
+    virtual void hossa_declare(hossa::Builder& builder) const = 0;
     virtual void to_hossa(hossa::Builder& builder) const = 0;
 
     Span span;
@@ -256,6 +257,7 @@ struct FunDef : public Def {
 
     virtual void print(Names const& names, std::ostream& dest) const override;
 
+    virtual void hossa_declare(hossa::Builder& builder) const override;
     virtual void to_hossa(hossa::Builder& builder) const override;
 
     Name name;

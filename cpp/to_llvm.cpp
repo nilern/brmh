@@ -11,8 +11,7 @@ namespace brmh {
 llvm::Value* hossa::Call::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
     llvm::Value* const llvm_callee = callee->to_llvm(ctx, builder);
 
-    std::vector<llvm::Value*> llvm_args;
-    llvm_args.reserve(args.size());
+    std::vector<llvm::Value*> llvm_args(args.size());
     std::transform(args.begin(), args.end(), llvm_args.begin(), [&] (hossa::Expr* arg) {
         return arg->to_llvm(ctx, builder);
     });
@@ -71,13 +70,13 @@ void hossa::If::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
 void hossa::TailCall::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
     llvm::Value* const llvm_callee = callee->to_llvm(ctx, builder);
 
-    std::vector<llvm::Value*> llvm_args;
-    llvm_args.reserve(args.size());
+    std::vector<llvm::Value*> llvm_args(args.size());
     std::transform(args.begin(), args.end(), llvm_args.begin(), [&] (hossa::Expr* arg) {
         return arg->to_llvm(ctx, builder);
     });
 
-    builder.CreateCall(static_cast<llvm::FunctionType*>(llvm_callee->getType()), llvm_callee, llvm_args);
+    llvm::Value* res = builder.CreateCall(static_cast<llvm::FunctionType*>(llvm_callee->getType()), llvm_callee, llvm_args);
+    builder.CreateRet(res);
 }
 
 void hossa::Goto::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {

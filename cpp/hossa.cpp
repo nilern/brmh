@@ -7,7 +7,7 @@ namespace brmh::hossa {
 Fn::Fn(Span span, Name name, type::FnType* type, Block* entry_)
     : Expr(span, name, type), entry(entry_) {}
 
-void Fn::print(Names& names, std::ostream& dest) const {
+void Fn::print_def(Names& names, std::ostream& dest) const {
     std::unordered_set<Block const*> visited;
 
     dest << "fun ";
@@ -23,6 +23,12 @@ void Fn::print(Names& names, std::ostream& dest) const {
     entry->print(names, dest, visited);
 
     dest << std::endl << '}';
+}
+
+void Fn::print(Names &names, std::ostream &dest) const {
+    dest << "(fun ";
+    name.print(names, dest);
+    dest << ')';
 }
 
 Block::Block(Name name_, std::span<Param*> params_, Transfer* transfer_)
@@ -135,7 +141,7 @@ Program::Program(BumpArena&& arena, std::vector<Fn*> &&externs_)
 
 void Program::print(Names& names, std::ostream& dest) const {
     for (Fn* const ext_fn : externs) {
-        ext_fn->print(names, dest);
+        ext_fn->print_def(names, dest);
         dest << std::endl << std::endl;
     }
 }
@@ -151,6 +157,7 @@ Names *Builder::names() const { return names_; }
 
 Fn* Builder::fn(Span span, Name name, type::FnType* type, bool external, Block* entry) {
     Fn* const res = new (arena_.alloc<Fn>()) Fn(span, name, type, entry);
+    exprs_.insert({name, res});
     if (external) { externs_.push_back(res); }
     return res;
 }

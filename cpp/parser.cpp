@@ -151,7 +151,7 @@ ast::Expr* Parser::parse_callee() {
                 : strncmp(op_tok.chars, "__subWI64", op_tok.size) == 0
                   ? ast::PrimApp::Op::SUB_W_I64
                   : strncmp(op_tok.chars, "__mulWI64", op_tok.size) == 0
-                    ? ast::PrimApp::Op::SUB_W_I64
+                    ? ast::PrimApp::Op::MUL_W_I64
                     : strncmp(op_tok.chars, "__eqI64", op_tok.size) == 0
                       ? ast::PrimApp::Op::EQ_I64
                       :  throw Error(op_tok.pos);
