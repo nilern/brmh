@@ -73,6 +73,14 @@ Def::Def(Span span_) : span(span_) {}
 FunDef::FunDef(Span span, Name name_, std::vector<Param>&& params_, type::Type* codomain_, Expr* body_)
     : Def(span), name(name_), params(params_), codomain(codomain_), body(body_) {}
 
+std::vector<type::Type*> fast::FunDef::domain() const {
+    std::vector<type::Type*> res;
+    for (const Param& param : params) {
+        res.push_back(param.type);
+    }
+    return res;
+}
+
 void FunDef::print(Names const& names, std::ostream& dest) const {
     dest << "fun ";
     name.print(names, dest);

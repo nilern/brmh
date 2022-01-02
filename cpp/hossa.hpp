@@ -328,33 +328,33 @@ private:
 
 // # Fn
 
-struct Fn {
-    void print(Names& names, std::ostream& dest) const;
+struct Fn : public Expr {
+    Block* entry;
+
+    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+
+    void print(Names& names, std::ostream& dest) const override;
 
     void llvm_declare(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module, llvm::Function::LinkageTypes linkage) const;
-    void to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const;
-
-    Span span;
-    Name name;
-    type::Type* codomain;
-    Block* entry;
+    void llvm_define(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const;
 
 private:
     friend struct Builder;
 
-    Fn(Span span, Name name, type::Type* codomain, Block* entry);
+    Fn(Span span, Name name, type::FnType* type, Block* entry);
 };
 
 // # Builder
 
 struct Builder {
-    Builder(Names* names);
+    Builder(Names* names, type::Types& types);
 
     Names* names() const;
+    type::Types& types() const { return types_; }
 
     // OPTIMIZE: deduplicate constants:
 
-    Fn* fn(Span span, Name name, type::Type* codomain, bool external, Block* entry);
+    Fn* fn(Span span, Name name, type::FnType* type, bool external, Block* entry);
 
     opt_ptr<Block> current_block() const;
     void set_current_block(Block* block);
@@ -392,6 +392,7 @@ struct Builder {
 
 private:
     Names* names_;
+    type::Types& types_;
     BumpArena arena_;
     std::unordered_map<Name, Expr*, Name::Hash> exprs_;
     std::vector<Fn*> externs_;

@@ -150,7 +150,8 @@ hossa::Expr* fast::I64::to_hossa(hossa::Builder& builder, hossa::Fn*, ToHossaCon
 }
 
 void fast::FunDef::to_hossa(hossa::Builder& builder) const {
-    hossa::Fn* const fn = builder.fn(span, name, codomain, /* FIXME: */ true, nullptr);
+    type::FnType* const type = builder.types().fn(domain(), codomain);
+    hossa::Fn* const fn = builder.fn(span, name, type, /* FIXME: */ true, nullptr);
 
     hossa::Block* const entry = builder.block(params.size(), nullptr);
     std::size_t i = 0;
@@ -164,8 +165,8 @@ void fast::FunDef::to_hossa(hossa::Builder& builder) const {
     body->to_hossa(builder, fn, ToHossaReturnCont());
 }
 
-hossa::Program fast::Program::to_hossa(Names& names) const {
-    hossa::Builder builder(&names);
+hossa::Program fast::Program::to_hossa(Names& names, type::Types& types) const {
+    hossa::Builder builder(&names, types);
 
     for (const auto def : defs) {
         def->to_hossa(builder);

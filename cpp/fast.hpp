@@ -252,6 +252,8 @@ protected:
 };
 
 struct FunDef : public Def {
+    std::vector<type::Type*> domain() const;
+
     virtual void print(Names const& names, std::ostream& dest) const override;
 
     virtual void to_hossa(hossa::Builder& builder) const override;
@@ -300,7 +302,7 @@ struct Program {
 
     void print(Names const& names, std::ostream& dest) const;
 
-    hossa::Program to_hossa(Names& names) const;
+    hossa::Program to_hossa(Names& names, type::Types& types) const;
 
     std::vector<Def*> defs;
 

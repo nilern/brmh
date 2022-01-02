@@ -4,8 +4,8 @@
 
 namespace brmh::hossa {
 
-Fn::Fn(Span span_, Name name_, type::Type* codomain_, Block* entry_)
-    : span(span_), name(name_), codomain(codomain_), entry(entry_) {}
+Fn::Fn(Span span, Name name, type::FnType* type, Block* entry_)
+    : Expr(span, name, type), entry(entry_) {}
 
 void Fn::print(Names& names, std::ostream& dest) const {
     std::unordered_set<Block const*> visited;
@@ -15,7 +15,7 @@ void Fn::print(Names& names, std::ostream& dest) const {
 
     dest << " -> ";
 
-    codomain->print(names, dest);
+    static_cast<type::FnType*>(type)->codomain->print(names, dest); // HACK: static_cast
 
     dest << " {" << std::endl;
 
@@ -142,13 +142,15 @@ void Program::print(Names& names, std::ostream& dest) const {
 
 // # Builder
 
-Builder::Builder(Names* names)
-    : names_(names), arena_(), exprs_(), externs_(), current_block_(opt_ptr<Block>::none()) {}
+Builder::Builder(Names* names, type::Types& types)
+    : names_(names), types_(types), arena_(),
+      exprs_(), externs_(),
+      current_block_(opt_ptr<Block>::none()) {}
 
 Names *Builder::names() const { return names_; }
 
-Fn* Builder::fn(Span span, Name name, type::Type* codomain, bool external, Block* entry) {
-    Fn* const res = new (arena_.alloc<Fn>()) Fn(span, name, codomain, entry);
+Fn* Builder::fn(Span span, Name name, type::FnType* type, bool external, Block* entry) {
+    Fn* const res = new (arena_.alloc<Fn>()) Fn(span, name, type, entry);
     if (external) { externs_.push_back(res); }
     return res;
 }

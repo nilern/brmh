@@ -106,12 +106,12 @@ llvm::BasicBlock* hossa::Block::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& build
 }
 
 void hossa::Fn::llvm_declare(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module, llvm::Function::LinkageTypes linkage) const {
-    std::span<Param*> params = entry->params;
-    std::vector<llvm::Type*> llvm_domain(params.size());
-    std::transform(params.begin(), params.end(), llvm_domain.begin(), [&] (Param* param) {
-        return param->type->to_llvm(llvm_ctx);
+    type::FnType* const hossa_type = static_cast<type::FnType*>(type); // HACK: static_cast
+    std::vector<llvm::Type*> llvm_domain(hossa_type->domain.size());
+    std::transform(hossa_type->domain.begin(), hossa_type->domain.end(), llvm_domain.begin(), [&] (type::Type* param_type) {
+        return param_type->to_llvm(llvm_ctx);
     });
-    llvm::FunctionType* const llvm_type = llvm::FunctionType::get(codomain->to_llvm(llvm_ctx), llvm_domain, false);
+    llvm::FunctionType* const llvm_type = llvm::FunctionType::get(hossa_type->codomain->to_llvm(llvm_ctx), llvm_domain, false);
 
     llvm::Twine llvm_name(name.src_name(names).unwrap_or(""));
     llvm::Function* llvm_fn = llvm::Function::Create(llvm_type, linkage, llvm_name, module);
@@ -123,9 +123,9 @@ void hossa::Fn::llvm_declare(Names const& names, llvm::LLVMContext& llvm_ctx, ll
     }
 }
 
-void hossa::Fn::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const {
+void hossa::Fn::llvm_define(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const {
     llvm::Function* const llvm_fn = module.getFunction(name.src_name(names).unwrap_or(""));
-    ToLLVMCtx ctx(names, llvm_ctx, llvm_fn);
+    ToLLVMCtx ctx(names, llvm_ctx, module, llvm_fn);
     llvm::IRBuilder builder(llvm_ctx);
 
     std::size_t i = 0;
@@ -139,13 +139,17 @@ void hossa::Fn::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::M
     llvm::verifyFunction(*llvm_fn);
 }
 
+llvm::Value* hossa::Fn::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &) const {
+    return ctx.llvm_module.getFunction(name.src_name(ctx.names).unwrap_or(""));
+}
+
 void hossa::Program::to_llvm(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const {
     for (hossa::Fn* const ext_fn : externs) {
         ext_fn->llvm_declare(names, llvm_ctx, module, llvm::Function::ExternalLinkage);
     }
 
     for (hossa::Fn* const ext_fn : externs) {
-        ext_fn->to_llvm(names, llvm_ctx, module);
+        ext_fn->llvm_define(names, llvm_ctx, module);
     }
 }
 

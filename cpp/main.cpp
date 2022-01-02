@@ -127,7 +127,7 @@ int main (int argc, char const* const* argv) {
 
             std::cout << "HO-SSA\n======" << std::endl << std::endl;
 
-            brmh::hossa::Program hossa_program = typed_program.to_hossa(names);
+            brmh::hossa::Program hossa_program = typed_program.to_hossa(names, types);
             hossa_program.print(names, std::cout);
 
             std::cout << "LLVM IR\n=======" << std::endl << std::endl;
