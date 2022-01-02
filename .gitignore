@@ -35,3 +35,6 @@ brmh
 # Generated documentation
 /doxygened
 
+# Editor/IDE configs
+brmh.creator.user
+
