@@ -35,6 +35,8 @@
 
 #include "to_hossa.cpp"
 
+#include "hossa_doms.cpp"
+
 #include "to_llvm.cpp"
 
 namespace brmh {

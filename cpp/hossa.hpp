@@ -200,6 +200,8 @@ private:
 // # Transfer
 
 struct Transfer {
+    virtual std::span<Block*> successors() = 0;
+
     virtual void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const = 0;
 
     virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
@@ -213,6 +215,10 @@ protected:
 // ## If
 
 struct If : public Transfer {
+    virtual std::span<Block*> successors() override {
+        return std::span<Block*>(&conseq, 2);
+    }
+
     void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
 
     virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
@@ -232,6 +238,10 @@ private:
 struct TailCall : public Transfer {
     Expr* callee;
     std::span<Expr*> args;
+
+    virtual std::span<Block*> successors() override {
+        return std::span<Block*>();
+    }
 
     void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>&) const override {
         dest << "        tailcall ";
@@ -265,6 +275,10 @@ private:
 // ## Goto
 
 struct Goto : public Transfer {
+    virtual std::span<Block*> successors() override {
+        return std::span<Block*>(&dest, 1);
+    }
+
     void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
 
     virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
@@ -281,6 +295,10 @@ private:
 // ## Return
 
 struct Return : public Transfer {
+    virtual std::span<Block*> successors() override {
+        return std::span<Block*>();
+    }
+
     void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const override;
 
     virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
@@ -313,6 +331,25 @@ private:
 // # Block
 
 struct Block {
+    template<typename F>
+    void do_post_visit(std::unordered_set<Block const*>& visited, F f) const {
+        if (!visited.contains(this)) {
+            visited.insert(this);
+
+            for (Block const* succ : transfer->successors()) {
+                succ->do_post_visit(visited, f);
+            }
+
+            f(this);
+        }
+    }
+
+    template<typename F>
+    void post_visit(F f) const {
+        std::unordered_set<Block const*> visited;
+        do_post_visit(visited, f);
+    }
+
     void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const;
 
     llvm::BasicBlock* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
