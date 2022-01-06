@@ -19,6 +19,8 @@ cpp/hossa.cpp
 cpp/hossa.hpp
 cpp/hossa_doms.cpp
 cpp/hossa_doms.hpp
+cpp/hossa_schedule.cpp
+cpp/hossa_schedule.hpp
 cpp/lexer.cpp
 cpp/lexer.hpp
 cpp/main.cpp

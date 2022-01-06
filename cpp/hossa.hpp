@@ -23,13 +23,24 @@ struct ToLLVMCtx;
 
 namespace brmh::hossa {
 
+struct Expr;
+struct Transfer;
 struct Block;
 struct Fn;
 struct Builder;
 
+// # Visitors
+
+class TransfersExprsVisitor {
+    virtual void visit(Transfer const* transfer) = 0;
+    virtual void visit(Expr const* transfer) = 0;
+};
+
 // # Expr
 
 struct Expr {
+    virtual std::span<Expr*> args() const = 0;
+
     virtual void print(Names& names, std::ostream& dest) const = 0;
 
     virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
@@ -200,6 +211,7 @@ private:
 // # Transfer
 
 struct Transfer {
+    virtual std::span<Expr*> args() const = 0;
     virtual std::span<Block*> successors() = 0;
 
     virtual void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const = 0;
@@ -368,6 +380,8 @@ private:
 
 struct Fn : public Expr {
     Block* entry;
+
+    virtual void post_visit_transfers_and_exprs(TransfersExprsVisitor& visitor) const;
 
     virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 

@@ -21,11 +21,11 @@ PostIndex intersect(CompactDomTree const& doms, PostIndex finger1, PostIndex fin
     return finger1;
 }
 
-DomTree dominator_tree(Fn &fn) {
+DomTree dominator_tree(Fn* fn) {
     // Initialize postorder indices:
     std::vector<Block const*> post_order;
     std::unordered_map<Block const*, PostIndex> block_indices;
-    fn.entry->post_visit([&] (Block const* block) {
+    fn->entry->post_visit([&] (Block const* block) {
         std::size_t const i = post_order.size();
         post_order.push_back(block);
         block_indices.insert({block, i});
