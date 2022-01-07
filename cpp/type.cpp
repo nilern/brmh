@@ -16,6 +16,7 @@ void FnType::print(Names const& names, std::ostream& dest) const {
     auto it = domain.begin();
     if (it != domain.end()) {
         (*it)->print(names, dest);
+        ++it;
 
         for (; it != domain.end(); ++it) {
             dest << ", ";
