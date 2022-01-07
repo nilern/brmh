@@ -1,4 +1,5 @@
 #include "hossa.hpp"
+#include "hossa_schedule.hpp"
 
 #include <cstring>
 
@@ -8,7 +9,10 @@ Fn::Fn(Span span, Name name, type::FnType* type, Block* entry_)
     : Expr(span, name, type), entry(entry_) {}
 
 void Fn::print_def(Names& names, std::ostream& dest) const {
-    std::unordered_set<Block const*> visited;
+    schedule::Schedule schedule = schedule::schedule_late(this);
+
+    std::unordered_set<Block const*> visited_blocks;
+    std::unordered_set<Expr const*> visited_exprs;
 
     dest << "fun ";
     name.print(names, dest);
@@ -20,23 +24,23 @@ void Fn::print_def(Names& names, std::ostream& dest) const {
     dest << " {" << std::endl;
 
     dest << "    ";
-    entry->print(names, dest, visited);
+    entry->print(names, dest, visited_blocks, visited_exprs);
 
     dest << std::endl << '}';
 }
 
-void Fn::print(Names &names, std::ostream &dest) const {
-    dest << "(fun ";
+void Fn::do_print(Names &names, std::ostream &dest) const {
+    dest << "fun ";
     name.print(names, dest);
-    dest << ')';
 }
 
 Block::Block(Name name_, std::span<Param*> params_, Transfer* transfer_)
     : name(name_), params(params_), transfer(transfer_) {}
 
-void Block::print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const {
-    if (!visited.contains(this)) {
-        visited.insert(this);
+void Block::print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited_blocks,
+                  std::unordered_set<Expr const*>& visited_exprs) const {
+    if (!visited_blocks.contains(this)) {
+        visited_blocks.insert(this);
         name.print(names, dest);
 
         dest << " (";
@@ -58,7 +62,7 @@ void Block::print(Names& names, std::ostream& dest, std::unordered_set<Block con
 
         dest << "):" << std::endl;
 
-        transfer->print(names, dest, visited);
+        transfer->print(names, dest, visited_blocks, visited_exprs);
     }
 }
 
@@ -83,55 +87,60 @@ char const* MulWI64::opname() const { return "mulWI64"; }
 Param::Param(Span span, Name name, type::Type* type)
     : Expr(span, name, type){}
 
-void Param::print(Names& names, std::ostream& dest) const {
+void Param::do_print(Names& names, std::ostream& dest) const {
+    dest << "param ";
     name.print(names, dest);
 }
 
 I64::I64(Span span, Name name, type::Type* type, const char* digits_)
     : Expr(span, name, type), digits(digits_) {}
 
-void I64::print(Names&, std::ostream& dest) const {
+void I64::do_print(Names&, std::ostream& dest) const {
     dest << digits;
 }
 
 Transfer::Transfer(Span span_) : span(span_) {}
 
+void Transfer::print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited_blocks,
+           std::unordered_set<Expr const*>& visited_exprs) const {
+    for (Expr const* operand : operands()) {
+        operand->print(names, dest, visited_exprs);
+    }
+
+    do_print(names, dest);
+
+    for (Block const* succ : successors()) {
+        dest << "\n\n    ";
+        succ->print(names, dest, visited_blocks, visited_exprs);
+    }
+}
+
 If::If(Span span, Expr *cond_, Block *conseq_, Block *alt_)
     : Transfer(span), cond(cond_), conseq(conseq_), alt(alt_) {}
 
-void If::print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const {
+void If::do_print(Names& names, std::ostream& dest) const {
     dest << "        if ";
-    cond->print(names, dest);
+    cond->name.print(names, dest);
     dest << "\n        then goto ";
     conseq->name.print(names, dest);
     dest << "\n        else goto ";
     alt->name.print(names, dest);
-
-    dest << "\n\n    ";
-
-    conseq->print(names, dest, visited);
-    dest << "\n\n    ";
-    alt->print(names, dest, visited);
 }
 
 Return::Return(Span span, Expr* res_) : Transfer(span), res(res_) {}
 
-void Return::print(Names& names, std::ostream& dest, std::unordered_set<Block const*>&) const {
+void Return::do_print(Names& names, std::ostream& dest) const {
     dest << "        return ";
-    res->print(names, dest);
+    res->name.print(names, dest);
 }
 
 Goto::Goto(Span span, Block* dest_, Expr* res_) : Transfer(span), dest(dest_), res(res_) {}
 
-void Goto::print(Names& names, std::ostream& desto, std::unordered_set<Block const*>& visited) const {
+void Goto::do_print(Names& names, std::ostream& desto) const {
     desto << "        goto ";
     dest->name.print(names, desto);
     desto << ' ';
-    res->print(names, desto);
-
-    desto << "\n\n    ";
-
-    dest->print(names, desto, visited);
+    res->name.print(names, desto);
 }
 
 // # Program
