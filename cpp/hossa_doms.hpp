@@ -16,7 +16,7 @@ struct DomTreeNode {
 
 using DomTree = std::unordered_map<Block const*, DomTreeNode>;
 
-DomTree dominator_tree(Fn* fn);
+DomTree dominator_tree(Fn const* fn);
 
 Block const* lca(DomTree const& doms, Block const* block1, Block const* block2);
 

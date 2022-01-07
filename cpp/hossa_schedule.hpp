@@ -9,7 +9,7 @@ namespace brmh::hossa::schedule {
 
 using Schedule = std::unordered_map<Expr const*, Block const*>;
 
-Schedule schedule_late(Fn* fn);
+Schedule schedule_late(Fn const* fn);
 
 }
 

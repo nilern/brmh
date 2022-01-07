@@ -36,7 +36,7 @@ struct SetupVisitor : public hossa::TransfersExprsVisitor {
     }
 };
 
-Schedule schedule_late(Fn *fn) {
+Schedule schedule_late(Fn const* fn) {
     // Initialize postorder and reverse mappings:
 
     SetupVisitor visitor;
@@ -58,23 +58,31 @@ Schedule schedule_late(Fn *fn) {
     std::for_each(post_order.crbegin(), post_order.crend(), [&] (Expr const* expr) {
         Block const* parent = nullptr;
 
-        for (Expr const* use : use_exprs.at(expr)) {
-            Block const* const use_parent = res.at(use);
-            if (parent == nullptr) {
-                parent = use_parent;
-            } else {
-                parent = doms::lca(doms, parent, use_parent);
+        auto expr_use_exprs = use_exprs.find(expr);
+        if (expr_use_exprs != use_exprs.end()) {
+            for (Expr const* use : expr_use_exprs->second) {
+                Block const* const use_parent = res.at(use);
+                if (parent == nullptr) {
+                    parent = use_parent;
+                } else {
+                    parent = doms::lca(doms, parent, use_parent);
+                }
             }
         }
 
-        for (Transfer const* use : use_transfers.at(expr)) {
-            Block const* const use_parent = transfer_blocks.at(use);
-            if (parent == nullptr) {
-                parent = use_parent;
-            } else {
-                parent = doms::lca(doms, parent, use_parent);
+        auto expr_use_transfers = use_transfers.find(expr);
+        if (expr_use_transfers != use_transfers.end()) {
+            for (Transfer const* use : expr_use_transfers->second) {
+                Block const* const use_parent = transfer_blocks.at(use);
+                if (parent == nullptr) {
+                    parent = use_parent;
+                } else {
+                    parent = doms::lca(doms, parent, use_parent);
+                }
             }
         }
+
+        res.insert({expr, parent});
     });
 
     return res;

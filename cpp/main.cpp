@@ -36,6 +36,7 @@
 #include "to_hossa.cpp"
 
 #include "hossa_doms.cpp"
+#include "hossa_schedule.cpp"
 
 #include "to_llvm.cpp"
 

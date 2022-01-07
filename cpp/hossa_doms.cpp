@@ -20,7 +20,7 @@ PostIndex intersect(CompactDomTree const& doms, PostIndex finger1, PostIndex fin
     return finger1;
 }
 
-DomTree dominator_tree(Fn* fn) {
+DomTree dominator_tree(Fn const* fn) {
     // Initialize postorder indices:
     std::vector<Block const*> post_order;
     std::unordered_map<Block const*, PostIndex> block_indices;
@@ -40,7 +40,8 @@ DomTree dominator_tree(Fn* fn) {
 
     // Initialize compact dominator tree:
     CompactDomTree doms(post_order.size());
-    doms[0] = 0;
+    PostIndex root_index = post_order.size() - 1;
+    doms[root_index] = root_index;
 
     // Control flow analysis:
     bool changed = true;
