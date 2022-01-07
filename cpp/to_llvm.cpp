@@ -9,10 +9,10 @@
 namespace brmh {
 
 llvm::Value* hossa::Call::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
-    llvm::Value* const llvm_callee = callee->to_llvm(ctx, builder);
+    llvm::Value* const llvm_callee = callee()->to_llvm(ctx, builder);
 
-    std::vector<llvm::Value*> llvm_args(args.size());
-    std::transform(args.begin(), args.end(), llvm_args.begin(), [&] (hossa::Expr* arg) {
+    std::vector<llvm::Value*> llvm_args(args().size());
+    std::transform(args().begin(), args().end(), llvm_args.begin(), [&] (hossa::Expr* arg) {
         return arg->to_llvm(ctx, builder);
     });
 
@@ -68,10 +68,10 @@ void hossa::If::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
 
 // TODO: Ensure TCO:
 void hossa::TailCall::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
-    llvm::Value* const llvm_callee = callee->to_llvm(ctx, builder);
+    llvm::Value* const llvm_callee = callee()->to_llvm(ctx, builder);
 
-    std::vector<llvm::Value*> llvm_args(args.size());
-    std::transform(args.begin(), args.end(), llvm_args.begin(), [&] (hossa::Expr* arg) {
+    std::vector<llvm::Value*> llvm_args(args().size());
+    std::transform(args().begin(), args().end(), llvm_args.begin(), [&] (hossa::Expr* arg) {
         return arg->to_llvm(ctx, builder);
     });
 

@@ -4,7 +4,6 @@
 
 namespace brmh::hossa::doms {
 
-using PostIndex = std::size_t;
 using CompactDomTree = std::vector<std::optional<PostIndex>>;
 
 PostIndex intersect(CompactDomTree const& doms, PostIndex finger1, PostIndex finger2) {
@@ -73,9 +72,28 @@ DomTree dominator_tree(Fn* fn) {
     // Expand dominator tree:
     DomTree res;
     for (PostIndex i = 0; i < doms.size(); ++i) {
-        res.insert({post_order[i], post_order[doms[i].value()]});
+        res.insert({post_order[i], {i, post_order[doms[i].value()]}});
     }
     return res;
+}
+
+Block const* lca(DomTree const& doms, Block const* block1, Block const* block2) {
+    DomTreeNode node1 = doms.at(block1);
+    DomTreeNode node2 = doms.at(block2);
+
+    while (node1.post_index != node2.post_index) {
+        while (node1.post_index < node2.post_index) {
+            block1 = node1.parent;
+            node1 = doms.at(block1);
+        }
+
+        while (node2.post_index < node1.post_index) {
+            block2 = node2.parent;
+            node2 = doms.at(block2);
+        }
+    }
+
+    return block1;
 }
 
 }

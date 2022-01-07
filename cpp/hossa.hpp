@@ -31,7 +31,7 @@ struct Builder;
 
 // # Visitors
 
-class TransfersExprsVisitor {
+struct TransfersExprsVisitor {
     virtual void visit(Transfer const* transfer) = 0;
     virtual void visit(Expr const* transfer) = 0;
 };
@@ -39,7 +39,20 @@ class TransfersExprsVisitor {
 // # Expr
 
 struct Expr {
-    virtual std::span<Expr*> args() const = 0;
+    virtual std::span<Expr* const> operands() const = 0;
+
+    template<typename F>
+    void do_post_visit(std::unordered_set<Expr const*>& visited, F f) const {
+        if (!visited.contains(this)) {
+            visited.insert(this);
+
+            for (Expr const* operand : operands()) {
+                operand->do_post_visit(visited, f);
+            }
+
+            f(this);
+        }
+    }
 
     virtual void print(Names& names, std::ostream& dest) const = 0;
 
@@ -56,20 +69,25 @@ protected:
 // ## Call
 
 struct Call : public Expr {
-    Expr* callee;
-    std::span<Expr*> args;
+    std::span<Expr*> exprs;
+
+    Expr* callee() const { return exprs[0]; }
+
+    std::span<Expr* const> args() const { return exprs.subspan(1); }
+
+    virtual std::span<Expr* const> operands() const override { return exprs; }
 
     virtual void print(Names& names, std::ostream& dest) const override {
-        callee->print(names, dest);
+        callee()->print(names, dest);
 
         dest << '(';
 
-        auto arg = args.begin();
-        if (arg != args.end()) {
+        auto arg = args().begin();
+        if (arg != args().end()) {
             (*arg)->print(names, dest);
             ++arg;
 
-            for (; arg != args.end(); ++arg) {
+            for (; arg != args().end(); ++arg) {
                 dest << ", ";
                 (*arg)->print(names, dest);
             }
@@ -83,14 +101,18 @@ struct Call : public Expr {
 private:
     friend struct Builder;
 
-    Call(Span span, Name name, type::Type* type, Expr* callee_, std::span<Expr*> args_)
-        : Expr(span, name, type), callee(callee_), args(args_) {}
+    Call(Span span, Name name, type::Type* type, std::span<Expr*> exprs_)
+        : Expr(span, name, type), exprs(exprs_) {}
 };
 
 // ## PrimApp
 
 template<std::size_t N>
 struct PrimApp : public Expr {
+    virtual std::span<Expr* const> operands() const override {
+        return std::span<Expr* const>(args);
+    }
+
     virtual void print(Names& names, std::ostream& dest) const override {
         dest << "__" << opname();
 
@@ -166,6 +188,10 @@ private:
 // ## Param
 
 struct Param : public Expr {
+    virtual std::span<Expr* const> operands() const override {
+        return std::span<Expr* const>();
+    }
+
     virtual void print(Names& names, std::ostream& dest) const override;
 
     virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
@@ -179,6 +205,10 @@ private:
 // ## I64
 
 struct I64 : public Expr {
+    virtual std::span<Expr* const> operands() const override {
+        return std::span<Expr* const>();
+    }
+
     virtual void print(Names& names, std::ostream& dest) const override;
 
     virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
@@ -194,6 +224,10 @@ private:
 // ## Bool
 
 struct Bool : public Expr {
+    virtual std::span<Expr* const> operands() const override {
+        return std::span<Expr* const>();
+    }
+
     virtual void print(Names&, std::ostream& dest) const override {
         dest << (value ? "True" : "False");
     }
@@ -211,7 +245,7 @@ private:
 // # Transfer
 
 struct Transfer {
-    virtual std::span<Expr*> args() const = 0;
+    virtual std::span<Expr* const> operands() const = 0;
     virtual std::span<Block*> successors() = 0;
 
     virtual void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const = 0;
@@ -227,6 +261,10 @@ protected:
 // ## If
 
 struct If : public Transfer {
+    virtual std::span<Expr* const> operands() const override {
+        return std::span<Expr* const>(&cond, 1);
+    }
+
     virtual std::span<Block*> successors() override {
         return std::span<Block*>(&conseq, 2);
     }
@@ -248,8 +286,13 @@ private:
 // ## TailCall
 
 struct TailCall : public Transfer {
-    Expr* callee;
-    std::span<Expr*> args;
+    std::span<Expr*> exprs;
+
+    Expr* callee() const { return exprs[0]; }
+
+    std::span<Expr* const> args() const { return exprs.subspan(1); }
+
+    virtual std::span<Expr* const> operands() const override { return exprs; }
 
     virtual std::span<Block*> successors() override {
         return std::span<Block*>();
@@ -257,16 +300,16 @@ struct TailCall : public Transfer {
 
     void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>&) const override {
         dest << "        tailcall ";
-        callee->print(names, dest);
+        callee()->print(names, dest);
 
         dest << '(';
 
-        auto arg = args.begin();
-        if (arg != args.end()) {
+        auto arg = args().begin();
+        if (arg != args().end()) {
             (*arg)->print(names, dest);
             ++arg;
 
-            for (; arg != args.end(); ++arg) {
+            for (; arg != args().end(); ++arg) {
                 dest << ", ";
                 (*arg)->print(names, dest);
             }
@@ -280,13 +323,16 @@ struct TailCall : public Transfer {
 private:
     friend struct Builder;
 
-    TailCall(Span span, Expr* callee_, std::span<Expr*> args_)
-        : Transfer(span), callee(callee_), args(args_) {}
+    TailCall(Span span, std::span<Expr*> exprs_) : Transfer(span), exprs(exprs_) {}
 };
 
 // ## Goto
 
 struct Goto : public Transfer {
+    virtual std::span<Expr* const> operands() const override {
+        return std::span<Expr* const>(&res, 1);
+    }
+
     virtual std::span<Block*> successors() override {
         return std::span<Block*>(&dest, 1);
     }
@@ -307,6 +353,10 @@ private:
 // ## Return
 
 struct Return : public Transfer {
+    virtual std::span<Expr* const> operands() const override {
+        return std::span<Expr* const>(&res, 1);
+    }
+
     virtual std::span<Block*> successors() override {
         return std::span<Block*>();
     }
@@ -362,6 +412,20 @@ struct Block {
         do_post_visit(visited, f);
     }
 
+    void do_post_visit_transfers_and_exprs(std::unordered_set<Block const*>& visited_blocks,
+                                           std::unordered_set<Expr const*>& visited_exprs,
+                                           TransfersExprsVisitor& visitor) const {
+        do_post_visit(visited_blocks, [&] (Block const* block) {
+            for (Expr const* expr : block->transfer->operands()) {
+                expr->do_post_visit(visited_exprs, [&] (Expr const* expr) {
+                    visitor.visit(expr);
+                });
+            }
+
+            visitor.visit(block->transfer);
+        });
+    }
+
     void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited) const;
 
     llvm::BasicBlock* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
@@ -381,7 +445,13 @@ private:
 struct Fn : public Expr {
     Block* entry;
 
-    virtual void post_visit_transfers_and_exprs(TransfersExprsVisitor& visitor) const;
+    virtual std::span<Expr* const> operands() const override { return std::span<Expr* const>(); }
+
+    virtual void post_visit_transfers_and_exprs(TransfersExprsVisitor& visitor) const {
+        std::unordered_set<Block const*> visited_blocks;
+        std::unordered_set<Expr const*> visited_exprs;
+        entry->do_post_visit_transfers_and_exprs(visited_blocks, visited_exprs, visitor);
+    }
 
     virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
@@ -421,14 +491,14 @@ struct Builder {
     }
 
     Transfer* if_(Span span, Expr* cond, Block* conseq, Block* alt);
-    Transfer* tail_call(Span span, Expr* callee, std::span<Expr*> args) {
-        return new (arena_.alloc<TailCall>()) TailCall(span, callee, args);
+    Transfer* tail_call(Span span, std::span<Expr*> exprs) {
+        return new (arena_.alloc<TailCall>()) TailCall(span, exprs);
     }
     Transfer* goto_(Span span, Block* dest, Expr* res);
     Transfer* ret(Span span, Expr* res);
 
-    Expr* call(Span span, type::Type* type, Expr* callee, std::span<Expr*> args) {
-        return new (arena_.alloc<Call>()) Call(span, names_->fresh(), type, callee, args);
+    Expr* call(Span span, type::Type* type, std::span<Expr*> exprs) {
+        return new (arena_.alloc<Call>()) Call(span, names_->fresh(), type, exprs);
     }
     Expr* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);
     Expr* sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args);

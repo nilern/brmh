@@ -70,19 +70,19 @@ hossa::Expr* fast::If::to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaC
 }
 
 hossa::Expr* fast::Call::to_hossa(hossa::Builder &builder, hossa::Fn *fn, const ToHossaCont &k) const {
-    hossa::Expr* const hossa_callee = callee->to_hossa(builder, fn, k);
+    std::span<hossa::Expr*> hossa_exprs = builder.args(1 + args.size());
 
-    std::span<hossa::Expr*> hossa_args = builder.args(args.size());
+    hossa_exprs[0] = callee->to_hossa(builder, fn, k);
 
     for (std::size_t i = 0; i < args.size(); ++i) {
-        hossa_args[i] = args[i]->to_hossa(builder, fn, ToHossaNextCont());
+        hossa_exprs[i + 1] = args[i]->to_hossa(builder, fn, ToHossaNextCont());
     }
 
     if (k.is_tail()) {
-        builder.current_block().unwrap()->transfer = builder.tail_call(span, hossa_callee, hossa_args);
+        builder.current_block().unwrap()->transfer = builder.tail_call(span, hossa_exprs);
         return nullptr; // Will not be used
     } else {
-        hossa::Expr* const hossa_call = builder.call(span, type, hossa_callee, hossa_args);
+        hossa::Expr* const hossa_call = builder.call(span, type, hossa_exprs);
         return k(builder, span, hossa_call);
     }
 }

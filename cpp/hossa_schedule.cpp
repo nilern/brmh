@@ -12,7 +12,7 @@ struct SetupVisitor : public hossa::TransfersExprsVisitor {
     SetupVisitor() : post_order() {}
 
     virtual void visit(Transfer const* transfer) override {
-        for (Expr const* arg : transfer->args()) {
+        for (Expr const* arg : transfer->operands()) {
             auto it = use_transfers.find(arg);
             if (it != use_transfers.end()) {
                 it->second.push_back(transfer);
@@ -25,7 +25,7 @@ struct SetupVisitor : public hossa::TransfersExprsVisitor {
     virtual void visit(Expr const* expr) override {
         post_order.push_back(expr);
 
-        for (Expr const* arg : expr->args()) {
+        for (Expr const* arg : expr->operands()) {
             auto it = use_exprs.find(arg);
             if (it != use_exprs.end()) {
                 it->second.push_back(expr);
@@ -51,7 +51,7 @@ Schedule schedule_late(Fn *fn) {
     });
 
     // Compute dominator tree:
-    doms::DomTree doms = doms::dominator_tree(fn);
+    doms::DomTree const doms = doms::dominator_tree(fn);
 
     // Schedule in reverse postorder:
     Schedule res;
@@ -60,6 +60,15 @@ Schedule schedule_late(Fn *fn) {
 
         for (Expr const* use : use_exprs.at(expr)) {
             Block const* const use_parent = res.at(use);
+            if (parent == nullptr) {
+                parent = use_parent;
+            } else {
+                parent = doms::lca(doms, parent, use_parent);
+            }
+        }
+
+        for (Transfer const* use : use_transfers.at(expr)) {
+            Block const* const use_parent = transfer_blocks.at(use);
             if (parent == nullptr) {
                 parent = use_parent;
             } else {
