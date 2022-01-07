@@ -56,23 +56,8 @@ struct Expr {
 
     virtual void do_print(Names& names, std::ostream& dest) const = 0;
 
-    void print(Names& names, std::ostream& dest, std::unordered_set<Expr const*>& visited_exprs) const {
-        if (!visited_exprs.contains(this)) {
-            visited_exprs.insert(this);
-
-            for (Expr const* operand : operands()) {
-                operand->print(names, dest, visited_exprs);
-            }
-
-            dest << "        ";
-            name.print(names, dest);
-            dest << " : ";
-            type->print(names, dest);
-            dest << " = ";
-            do_print(names, dest);
-            dest << "\n";
-        }
-    }
+    void print_in(Names& names, std::ostream& dest, std::unordered_map<Expr const*, Block const*> const& schedule,
+                  std::unordered_set<Expr const*>& visited_exprs, Block const* block) const;
 
     virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
 
@@ -268,8 +253,9 @@ struct Transfer {
 
     virtual void do_print(Names& names, std::ostream& dest) const = 0;
 
-    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited_blocks,
-               std::unordered_set<Expr const*>& visited_exprs) const;
+    void print(Names& names, std::ostream& dest, std::unordered_map<Expr const*, Block const*> const& schedule,
+               std::unordered_set<Block const*>& visited_blocks, std::unordered_set<Expr const*>& visited_exprs,
+               Block const* block) const;
 
     virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
 
@@ -445,7 +431,8 @@ struct Block {
         });
     }
 
-    void print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited_blocks,
+    void print(Names& names, std::ostream& dest, std::unordered_map<Expr const*, Block const*> const& schedule,
+               std::unordered_set<Block const*>& visited_blocks,
                std::unordered_set<Expr const*>& visited_exprs) const;
 
     llvm::BasicBlock* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;

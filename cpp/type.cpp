@@ -23,7 +23,7 @@ void FnType::print(Names const& names, std::ostream& dest) const {
         }
     }
 
-    dest << " -> ";
+    dest << ") -> ";
 
     codomain->print(names, dest);
 }

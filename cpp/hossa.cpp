@@ -9,7 +9,7 @@ Fn::Fn(Span span, Name name, type::FnType* type, Block* entry_)
     : Expr(span, name, type), entry(entry_) {}
 
 void Fn::print_def(Names& names, std::ostream& dest) const {
-    schedule::Schedule schedule = schedule::schedule_late(this);
+    schedule::Schedule const schedule = schedule::schedule_late(this);
 
     std::unordered_set<Block const*> visited_blocks;
     std::unordered_set<Expr const*> visited_exprs;
@@ -24,7 +24,7 @@ void Fn::print_def(Names& names, std::ostream& dest) const {
     dest << " {" << std::endl;
 
     dest << "    ";
-    entry->print(names, dest, visited_blocks, visited_exprs);
+    entry->print(names, dest, schedule, visited_blocks, visited_exprs);
 
     dest << std::endl << '}';
 }
@@ -37,7 +37,8 @@ void Fn::do_print(Names &names, std::ostream &dest) const {
 Block::Block(Name name_, std::span<Param*> params_, Transfer* transfer_)
     : name(name_), params(params_), transfer(transfer_) {}
 
-void Block::print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited_blocks,
+void Block::print(Names& names, std::ostream& dest, schedule::Schedule const& schedule,
+                  std::unordered_set<Block const*>& visited_blocks,
                   std::unordered_set<Expr const*>& visited_exprs) const {
     if (!visited_blocks.contains(this)) {
         visited_blocks.insert(this);
@@ -62,12 +63,33 @@ void Block::print(Names& names, std::ostream& dest, std::unordered_set<Block con
 
         dest << "):" << std::endl;
 
-        transfer->print(names, dest, visited_blocks, visited_exprs);
+        transfer->print(names, dest, schedule, visited_blocks, visited_exprs, this);
     }
 }
 
 Expr::Expr(Span span_, Name name_, type::Type* type_)
     : span(span_), name(name_), type(type_) {}
+
+void Expr::print_in(Names& names, std::ostream& dest, schedule::Schedule const& schedule,
+                    std::unordered_set<Expr const*>& visited_exprs, Block const* block) const {
+    if (schedule.at(this) == block) {
+        if (!visited_exprs.contains(this)) {
+            visited_exprs.insert(this);
+
+            for (Expr const* operand : operands()) {
+                operand->print_in(names, dest, schedule, visited_exprs, block);
+            }
+
+            dest << "        ";
+            name.print(names, dest);
+            dest << " : ";
+            type->print(names, dest);
+            dest << " = ";
+            do_print(names, dest);
+            dest << "\n";
+        }
+    }
+}
 
 AddWI64::AddWI64(Span span, Name name, type::Type* type, std::array<Expr*, 2> args)
     : PrimApp(span, name, type, args) {}
@@ -101,17 +123,18 @@ void I64::do_print(Names&, std::ostream& dest) const {
 
 Transfer::Transfer(Span span_) : span(span_) {}
 
-void Transfer::print(Names& names, std::ostream& dest, std::unordered_set<Block const*>& visited_blocks,
-           std::unordered_set<Expr const*>& visited_exprs) const {
+void Transfer::print(Names& names, std::ostream& dest, schedule::Schedule const& schedule,
+                     std::unordered_set<Block const*>& visited_blocks, std::unordered_set<Expr const*>& visited_exprs,
+                     Block const* block) const {
     for (Expr const* operand : operands()) {
-        operand->print(names, dest, visited_exprs);
+        operand->print_in(names, dest, schedule, visited_exprs, block);
     }
 
     do_print(names, dest);
 
     for (Block const* succ : successors()) {
         dest << "\n\n    ";
-        succ->print(names, dest, visited_blocks, visited_exprs);
+        succ->print(names, dest, schedule, visited_blocks, visited_exprs);
     }
 }
 
