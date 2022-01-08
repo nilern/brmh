@@ -17,7 +17,7 @@ llvm::Value* hossa::Call::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) co
         return arg->to_llvm(ctx, builder);
     });
 
-    return builder.CreateCall(static_cast<llvm::FunctionType*>(llvm_callee->getType()), llvm_callee, llvm_args);
+    return builder.CreateCall(static_cast<llvm::Function*>(llvm_callee), llvm_args);
 }
 
 llvm::Value* hossa::AddWI64::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
@@ -76,7 +76,7 @@ void hossa::TailCall::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const 
         return arg->to_llvm(ctx, builder);
     });
 
-    llvm::Value* res = builder.CreateCall(static_cast<llvm::FunctionType*>(llvm_callee->getType()), llvm_callee, llvm_args);
+    llvm::Value* res = builder.CreateCall(static_cast<llvm::Function*>(llvm_callee), llvm_args);
     builder.CreateRet(res);
 }
 
