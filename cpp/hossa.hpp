@@ -276,6 +276,7 @@ protected:
 public:
     virtual std::span<Expr* const> operands() const = 0;
     virtual std::span<Block* const> successors() const = 0;
+    virtual std::span<Expr* const> successors_phi_inputs() const = 0;
 
     virtual void do_print(Names& names, std::ostream& dest) const = 0;
 
@@ -308,6 +309,10 @@ public:
         return std::span<Block* const>(&conseq, 2);
     }
 
+    virtual std::span<Expr* const> successors_phi_inputs() const override {
+        return std::span<Expr* const>();
+    }
+
     void do_print(Names& names, std::ostream& dest) const override;
 
     virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
@@ -333,6 +338,8 @@ public:
     virtual std::span<Block* const> successors() const override {
         return std::span<Block* const>();
     }
+
+    virtual std::span<Expr* const> successors_phi_inputs() const override { return std::span<Expr* const>(); }
 
     void do_print(Names& names, std::ostream& dest) const override {
         dest << "        tailcall ";
@@ -377,6 +384,10 @@ public:
         return std::span<Block* const>(&dest, 1);
     }
 
+    virtual std::span<Expr* const> successors_phi_inputs() const override {
+        return operands();
+    }
+
     void do_print(Names& names, std::ostream& desto) const override;
 
     virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
@@ -398,6 +409,10 @@ public:
     }
 
     virtual std::span<Block* const> successors() const override { return std::span<Block* const>(); }
+
+    virtual std::span<Expr* const> successors_phi_inputs() const override {
+        return std::span<Expr* const>();
+    }
 
     void do_print(Names& names, std::ostream& dest) const override {
         dest << "        return ";
@@ -452,8 +467,9 @@ public:
                std::unordered_set<Block const*>& visited_blocks,
                std::unordered_set<Expr const*>& visited_exprs) const;
 
-    void llvm_declare(ToLLVMCtx& ctx) const;
-    llvm::BasicBlock* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
+    void llvm_declare(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
+    void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
+    void llvm_patch_phis(ToLLVMCtx& ctx) const;
 };
 
 // # Fn

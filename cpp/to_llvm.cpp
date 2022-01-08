@@ -101,13 +101,23 @@ void hossa::Return::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     builder.CreateRet(ctx.exprs.at(res));
 }
 
-void hossa::Block::llvm_declare(ToLLVMCtx& ctx) const {
+void hossa::Block::llvm_declare(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     llvm::BasicBlock* const llvm_block = llvm::BasicBlock::Create(ctx.llvm_ctx, name.src_name(ctx.names).unwrap_or(""), ctx.fn);
     ctx.blocks.insert({this, llvm_block});
+
+    // Create Phis for params:
+    auto it = ctx.predecessors.find(this);
+    std::size_t const predecessor_count = (it != ctx.predecessors.end()) ? it->second.size() : 0;
+    if (predecessor_count > 0) { // Except for entry (or unused block, but that can't occur)
+        builder.SetInsertPoint(llvm_block);
+        for (Param const* param : params) {
+            llvm::PHINode* const phi = builder.CreatePHI(param->type->to_llvm(ctx.llvm_ctx), predecessor_count);
+            ctx.exprs.insert({param, phi});
+        }
+    }
 }
 
-// FIXME: Block arguments -> Phi functions
-llvm::BasicBlock* hossa::Block::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
+void hossa::Block::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     llvm::BasicBlock* const llvm_block = ctx.blocks.at(this);
     builder.SetInsertPoint(llvm_block);
 
@@ -115,8 +125,18 @@ llvm::BasicBlock* hossa::Block::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& build
         expr->to_llvm(ctx, builder);
     }
     transfer->to_llvm(ctx, builder);
+}
 
-    return llvm_block;
+void hossa::Block::llvm_patch_phis(ToLLVMCtx &ctx) const {
+    llvm::BasicBlock* const llvm_block = ctx.blocks.at(this);
+    std::size_t i = 0;
+    for (llvm::PHINode& phi : llvm_block->phis()) {
+        for (hossa::Block const* predecessor : ctx.predecessors.at(this)) {
+            hossa::Expr const* const arg = predecessor->transfer->successors_phi_inputs()[i];
+            phi.addIncoming(ctx.exprs.at(arg), ctx.blocks.at(predecessor));
+        }
+        ++i;
+    }
 }
 
 void hossa::Fn::llvm_declare(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module, llvm::Function::LinkageTypes linkage) const {
@@ -153,8 +173,20 @@ void hossa::Fn::llvm_define(Names const& names, llvm::LLVMContext& llvm_ctx, llv
         }
     }
 
+    std::unordered_map<Block const*, std::vector<Block const*>> predecessors;
+    doms.pre_visit_blocks([&] (hossa::Block const* block) {
+        for (Block const* succ : block->transfer->successors()) {
+            auto it = predecessors.find(succ);
+            if (it != predecessors.end()) {
+                it->second.push_back(block);
+            } else {
+                predecessors.insert({succ, {block}});
+            }
+        }
+    });
+
     llvm::Function* const llvm_fn = module.getFunction(name.src_name(names).unwrap_or(""));
-    ToLLVMCtx ctx(names, llvm_ctx, module, llvm_fn, block_exprs);
+    ToLLVMCtx ctx(names, llvm_ctx, module, llvm_fn, std::move(block_exprs), std::move(predecessors));
     llvm::IRBuilder builder(llvm_ctx);
 
     // Push params to `ctx`:
@@ -166,12 +198,17 @@ void hossa::Fn::llvm_define(Names const& names, llvm::LLVMContext& llvm_ctx, llv
 
     // Create empty blocks, in dominator tree preorder since LLVM wants the entry block first:
     doms.pre_visit_blocks([&] (hossa::Block const* block) {
-        block->llvm_declare(ctx);
+        block->llvm_declare(ctx, builder);
     });
 
     // Fill blocks, in dominator tree preorder so that shared Values are created in postorder:
     doms.pre_visit_blocks([&] (hossa::Block const* block) {
         block->to_llvm(ctx, builder);
+    });
+
+    // Fill Phi sources:
+    doms.pre_visit_blocks([&] (hossa::Block const* block) {
+        block->llvm_patch_phis(ctx);
     });
 
     llvm::verifyFunction(*llvm_fn);
