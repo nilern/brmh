@@ -24,7 +24,7 @@ DomTree dominator_tree(Fn const* fn) {
     // Initialize postorder indices:
     std::vector<Block const*> post_order;
     std::unordered_map<Block const*, PostIndex> block_indices;
-    fn->entry->post_visit([&] (Block const* block) {
+    fn->post_visit_blocks([&] (Block const* block) {
         std::size_t const i = post_order.size();
         post_order.push_back(block);
         block_indices.insert({block, i});

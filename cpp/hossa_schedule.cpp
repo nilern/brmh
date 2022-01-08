@@ -46,7 +46,7 @@ Schedule schedule_late(Fn const* fn) {
     std::unordered_map<Expr const*, std::vector<Transfer const*>> use_transfers = std::move(visitor.use_transfers);
 
     std::unordered_map<Transfer const*, Block const*> transfer_blocks;
-    fn->entry->post_visit([&] (Block const* block) {
+    fn->post_visit_blocks([&] (Block const* block) {
         transfer_blocks.insert({block->transfer, block});
     });
 
