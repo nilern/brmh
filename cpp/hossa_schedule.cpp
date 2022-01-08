@@ -36,7 +36,7 @@ struct SetupVisitor : public hossa::TransfersExprsVisitor {
     }
 };
 
-Schedule schedule_late(Fn const* fn) {
+Schedule schedule_late(Fn const* fn, doms::DomTree const& doms) {
     // Initialize postorder and reverse mappings:
 
     SetupVisitor visitor;
@@ -49,9 +49,6 @@ Schedule schedule_late(Fn const* fn) {
     fn->post_visit_blocks([&] (Block const* block) {
         transfer_blocks.insert({block->transfer, block});
     });
-
-    // Compute dominator tree:
-    doms::DomTree const doms = doms::dominator_tree(fn);
 
     // Schedule in reverse postorder:
     Schedule res;

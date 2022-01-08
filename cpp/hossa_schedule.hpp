@@ -4,12 +4,13 @@
 #include <unordered_map>
 
 #include "hossa.hpp"
+#include "hossa_doms.hpp"
 
 namespace brmh::hossa::schedule {
 
 using Schedule = std::unordered_map<Expr const*, Block const*>;
 
-Schedule schedule_late(Fn const* fn);
+Schedule schedule_late(Fn const* fn, doms::DomTree const& doms);
 
 }
 
