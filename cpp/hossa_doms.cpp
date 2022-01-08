@@ -20,7 +20,7 @@ PostIndex intersect(CompactDomTree const& doms, PostIndex finger1, PostIndex fin
     return finger1;
 }
 
-DomTree dominator_tree(Fn const* fn) {
+DomTree DomTree::of(Fn const* fn) {
     // Initialize postorder indices:
     std::vector<Block const*> post_order;
     std::unordered_map<Block const*, PostIndex> block_indices;
@@ -81,9 +81,9 @@ DomTree dominator_tree(Fn const* fn) {
     return builder.build();
 }
 
-Block const* lca(DomTree const& doms, Block const* block1, Block const* block2) {
-    DomTreeNode const* node1 = doms.block_nodes.at(block1);
-    DomTreeNode const* node2 = doms.block_nodes.at(block2);
+Block const* DomTree::lca(Block const* block1, Block const* block2) const {
+    DomTreeNode const* node1 = block_nodes.at(block1);
+    DomTreeNode const* node2 = block_nodes.at(block2);
 
     while (node1->post_index != node2->post_index) {
         while (node1->post_index < node2->post_index) {

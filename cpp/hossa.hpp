@@ -451,6 +451,7 @@ public:
                std::unordered_set<Block const*>& visited_blocks,
                std::unordered_set<Expr const*>& visited_exprs) const;
 
+    void llvm_declare(ToLLVMCtx& ctx) const;
     llvm::BasicBlock* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
 };
 

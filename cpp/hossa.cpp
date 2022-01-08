@@ -6,7 +6,7 @@
 namespace brmh::hossa {
 
 void Fn::print_def(Names& names, std::ostream& dest) const {
-    doms::DomTree const doms = doms::dominator_tree(this);
+    doms::DomTree const doms = doms::DomTree::of(this);
     schedule::Schedule const schedule = schedule::schedule_late(this, doms);
 
     std::unordered_set<Block const*> visited_blocks;

@@ -62,7 +62,7 @@ Schedule schedule_late(Fn const* fn, doms::DomTree const& doms) {
                 if (parent == nullptr) {
                     parent = use_parent;
                 } else {
-                    parent = doms::lca(doms, parent, use_parent);
+                    parent = doms.lca(parent, use_parent);
                 }
             }
         }
@@ -74,7 +74,7 @@ Schedule schedule_late(Fn const* fn, doms::DomTree const& doms) {
                 if (parent == nullptr) {
                     parent = use_parent;
                 } else {
-                    parent = doms::lca(doms, parent, use_parent);
+                    parent = doms.lca(parent, use_parent);
                 }
             }
         }
