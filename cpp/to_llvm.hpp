@@ -14,11 +14,14 @@ struct ToLLVMCtx {
     llvm::LLVMContext& llvm_ctx;
     llvm::Module& llvm_module;
     llvm::Function* fn;
+    std::unordered_map<hossa::Block const*, std::vector<hossa::Expr const*>> block_exprs;
     std::unordered_map<const hossa::Expr*, llvm::Value*> exprs;
     std::unordered_map<const hossa::Block*, llvm::BasicBlock*> blocks;
 
-    ToLLVMCtx(Names const& names_, llvm::LLVMContext& llvm_ctx_, llvm::Module& llvm_module_, llvm::Function* fn_)
-        : names(names_), llvm_ctx(llvm_ctx_), llvm_module(llvm_module_), fn(fn_), exprs(), blocks() {}
+    ToLLVMCtx(Names const& names_, llvm::LLVMContext& llvm_ctx_, llvm::Module& llvm_module_, llvm::Function* fn_,
+              std::unordered_map<hossa::Block const*, std::vector<hossa::Expr const*>> block_exprs_)
+        : names(names_), llvm_ctx(llvm_ctx_), llvm_module(llvm_module_), fn(fn_), block_exprs(block_exprs_),
+          exprs(), blocks() {}
 };
 
 } // namespace brmh

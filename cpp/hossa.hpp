@@ -66,7 +66,8 @@ public:
     void print_in(Names& names, std::ostream& dest, std::unordered_map<Expr const*, Block const*> const& schedule,
                   std::unordered_set<Expr const*>& visited_exprs, Block const* block) const;
 
-    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
+    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
+    llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
 };
 
 // ## Call
@@ -106,7 +107,7 @@ public:
         dest << ')';
     }
 
-    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 };
 
 // ## PrimApp
@@ -156,7 +157,7 @@ private:
 public:
     char const* opname() const override { return  "addWI64"; }
 
-    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 };
 
 struct SubWI64 : public PrimApp<2> {
@@ -169,7 +170,7 @@ private:
 public:
     virtual const char* opname() const override { return "subWI64"; }
 
-    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 };
 
 struct MulWI64 : public PrimApp<2> {
@@ -182,7 +183,7 @@ private:
 public:
     virtual const char* opname() const override { return "mulWI64"; }
 
-    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 };
 
 struct EqI64 : public PrimApp<2> {
@@ -194,7 +195,7 @@ private:
 public:
     virtual const char* opname() const override { return "eqI64"; }
 
-    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 };
 
 // ## Param
@@ -215,7 +216,7 @@ public:
         name.print(names, dest);
     }
 
-    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 };
 
 // ## Const
@@ -243,7 +244,7 @@ public:
         dest << digits;
     }
 
-    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 };
 
 // ## Bool
@@ -261,7 +262,7 @@ public:
         dest << (value ? "True" : "False");
     }
 
-    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 };
 
 // # Transfer
@@ -481,7 +482,7 @@ public:
         entry->do_post_visit_transfers_and_exprs(visited_blocks, visited_exprs, visitor);
     }
 
-    virtual llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 
     void do_print(Names &names, std::ostream &dest) const override {
         dest << "fun ";

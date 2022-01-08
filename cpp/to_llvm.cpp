@@ -6,10 +6,22 @@
 
 #include "hossa.hpp"
 #include "hossa_doms.hpp"
+#include "hossa_schedule.hpp"
 
 namespace brmh {
 
-llvm::Value* hossa::Call::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
+llvm::Value* hossa::Expr::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
+    auto it = ctx.exprs.find(this);
+    if (it != ctx.exprs.end()) {
+        return it->second;
+    } else {
+        llvm::Value* const res = do_to_llvm(ctx, builder);
+        ctx.exprs.insert({this, res});
+        return res;
+    }
+}
+
+llvm::Value* hossa::Call::do_to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
     llvm::Value* const llvm_callee = callee()->to_llvm(ctx, builder);
 
     std::vector<llvm::Value*> llvm_args(args().size());
@@ -20,45 +32,45 @@ llvm::Value* hossa::Call::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) co
     return builder.CreateCall(static_cast<llvm::Function*>(llvm_callee), llvm_args);
 }
 
-llvm::Value* hossa::AddWI64::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
+llvm::Value* hossa::AddWI64::do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     auto l = args[0]->to_llvm(ctx, builder);
     auto r = args[1]->to_llvm(ctx, builder);
     return builder.CreateAdd(l, r);
 }
 
-llvm::Value* hossa::SubWI64::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
+llvm::Value* hossa::SubWI64::do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     auto l = args[0]->to_llvm(ctx, builder);
     auto r = args[1]->to_llvm(ctx, builder);
     return builder.CreateSub(l, r);
 }
 
-llvm::Value* hossa::MulWI64::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
+llvm::Value* hossa::MulWI64::do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     auto l = args[0]->to_llvm(ctx, builder);
     auto r = args[1]->to_llvm(ctx, builder);
     return builder.CreateMul(l, r);
 }
 
-llvm::Value* hossa::EqI64::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
+llvm::Value* hossa::EqI64::do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     auto l = args[0]->to_llvm(ctx, builder);
     auto r = args[1]->to_llvm(ctx, builder);
     llvm::Value* const bit = builder.CreateICmpEQ(l, r);
     return builder.CreateZExt(bit, type->to_llvm(ctx.llvm_ctx));
 }
 
-llvm::Value* hossa::Bool::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
+llvm::Value* hossa::Bool::do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
     return llvm::ConstantInt::get(type->to_llvm(ctx.llvm_ctx), value);
 }
 
-llvm::Value* hossa::I64::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
+llvm::Value* hossa::I64::do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
     return llvm::ConstantInt::get(type->to_llvm(ctx.llvm_ctx), /* FIXME: do this in typechecking, with range checking: */ atol(digits));
 }
 
-llvm::Value* hossa::Param::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
+llvm::Value* hossa::Param::do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>&) const {
     return ctx.exprs.at(this);
 }
 
 void hossa::If::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
-    llvm::Value* const bit_cond = cond->to_llvm(ctx, builder);
+    llvm::Value* const bit_cond = ctx.exprs.at(cond);
     llvm::Value* const llvm_cond = builder.CreateTrunc(bit_cond, llvm::Type::getInt1Ty(ctx.llvm_ctx));
     llvm::BasicBlock* const llvm_block = builder.GetInsertBlock();
     llvm::BasicBlock* const llvm_conseq = ctx.blocks.at(conseq);
@@ -69,11 +81,11 @@ void hossa::If::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
 
 // TODO: Ensure TCO:
 void hossa::TailCall::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
-    llvm::Value* const llvm_callee = callee()->to_llvm(ctx, builder);
+    llvm::Value* const llvm_callee = ctx.exprs.at(callee());
 
     std::vector<llvm::Value*> llvm_args(args().size());
     std::transform(args().begin(), args().end(), llvm_args.begin(), [&] (hossa::Expr* arg) {
-        return arg->to_llvm(ctx, builder);
+        return ctx.exprs.at(arg);
     });
 
     llvm::Value* res = builder.CreateCall(static_cast<llvm::Function*>(llvm_callee), llvm_args);
@@ -86,7 +98,7 @@ void hossa::Goto::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &builder) const {
 }
 
 void hossa::Return::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
-    builder.CreateRet(res->to_llvm(ctx, builder));
+    builder.CreateRet(ctx.exprs.at(res));
 }
 
 void hossa::Block::llvm_declare(ToLLVMCtx& ctx) const {
@@ -97,8 +109,11 @@ void hossa::Block::llvm_declare(ToLLVMCtx& ctx) const {
 // FIXME: Block arguments -> Phi functions
 llvm::BasicBlock* hossa::Block::to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const {
     llvm::BasicBlock* const llvm_block = ctx.blocks.at(this);
-
     builder.SetInsertPoint(llvm_block);
+
+    for (Expr const* expr : ctx.block_exprs.at(this)) {
+        expr->to_llvm(ctx, builder);
+    }
     transfer->to_llvm(ctx, builder);
 
     return llvm_block;
@@ -123,8 +138,23 @@ void hossa::Fn::llvm_declare(Names const& names, llvm::LLVMContext& llvm_ctx, ll
 }
 
 void hossa::Fn::llvm_define(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const {
+    hossa::doms::DomTree const doms = hossa::doms::DomTree::of(this);
+
+    hossa::schedule::Schedule const schedule = hossa::schedule::schedule_late(this, doms);
+    std::unordered_map<Block const*, std::vector<Expr const*>> block_exprs;
+    for (auto expr_block : schedule) {
+        Expr const* const expr = expr_block.first;
+        Block const* const block = expr_block.second;
+        auto it = block_exprs.find(block);
+        if (it != block_exprs.end()) {
+            it->second.push_back(expr);
+        } else {
+            block_exprs.insert({block, {expr}});
+        }
+    }
+
     llvm::Function* const llvm_fn = module.getFunction(name.src_name(names).unwrap_or(""));
-    ToLLVMCtx ctx(names, llvm_ctx, module, llvm_fn);
+    ToLLVMCtx ctx(names, llvm_ctx, module, llvm_fn, block_exprs);
     llvm::IRBuilder builder(llvm_ctx);
 
     // Push params to `ctx`:
@@ -134,13 +164,12 @@ void hossa::Fn::llvm_define(Names const& names, llvm::LLVMContext& llvm_ctx, llv
         ctx.exprs.insert({param, &arg});
     }
 
-    // Create empty blocks:
-    hossa::doms::DomTree const doms = hossa::doms::DomTree::of(this);
+    // Create empty blocks, in dominator tree preorder since LLVM wants the entry block first:
     doms.pre_visit_blocks([&] (hossa::Block const* block) {
         block->llvm_declare(ctx);
     });
 
-    // Fill blocks in dominator tree preorder:
+    // Fill blocks, in dominator tree preorder so that shared Values are created in postorder:
     doms.pre_visit_blocks([&] (hossa::Block const* block) {
         block->to_llvm(ctx, builder);
     });
@@ -148,7 +177,7 @@ void hossa::Fn::llvm_define(Names const& names, llvm::LLVMContext& llvm_ctx, llv
     llvm::verifyFunction(*llvm_fn);
 }
 
-llvm::Value* hossa::Fn::to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &) const {
+llvm::Value* hossa::Fn::do_to_llvm(ToLLVMCtx &ctx, llvm::IRBuilder<> &) const {
     return ctx.llvm_module.getFunction(name.src_name(ctx.names).unwrap_or(""));
 }
 
