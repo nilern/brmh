@@ -48,8 +48,7 @@ DomTree dominator_tree(Fn const* fn) {
     while (changed) {
         changed = false;
 
-        for (PostIndex next = post_order.size(); next > 0; --next) {
-            PostIndex const i = next - 1;
+        for (PostIndex i = post_order.size(); i-- > 0;) {
             std::vector<PostIndex>::const_iterator pred = predecessors[i].cbegin();
 
             for (; pred != predecessors[i].cend() && !doms[*pred].has_value(); ++pred) {}
@@ -71,26 +70,28 @@ DomTree dominator_tree(Fn const* fn) {
     }
 
     // Expand dominator tree:
-    DomTree res;
-    for (PostIndex i = 0; i < doms.size(); ++i) {
-        res.insert({post_order[i], {i, post_order[doms[i].value()]}});
+    DomTreeBuilder builder;
+    for (PostIndex i = doms.size(); i-- > 0;) {
+        PostIndex const parent_index = doms[i].value();
+        opt_ptr<Block const> const parent = parent_index != i ?
+                    opt_ptr<Block const>::some(post_order[parent_index])
+                  : opt_ptr<Block const>::none();
+        builder.node(post_order[i], i, parent);
     }
-    return res;
+    return builder.build();
 }
 
 Block const* lca(DomTree const& doms, Block const* block1, Block const* block2) {
-    DomTreeNode node1 = doms.at(block1);
-    DomTreeNode node2 = doms.at(block2);
+    DomTreeNode const* node1 = doms.block_nodes.at(block1);
+    DomTreeNode const* node2 = doms.block_nodes.at(block2);
 
-    while (node1.post_index != node2.post_index) {
-        while (node1.post_index < node2.post_index) {
-            block1 = node1.parent;
-            node1 = doms.at(block1);
+    while (node1->post_index != node2->post_index) {
+        while (node1->post_index < node2->post_index) {
+            node1 = node1->parent.unwrap(); // If node1 was root, node1->post_index >= node2->post_index
         }
 
-        while (node2.post_index < node1.post_index) {
-            block2 = node2.parent;
-            node2 = doms.at(block2);
+        while (node2->post_index < node1->post_index) {
+            node2 = node2->parent.unwrap(); // If node2 was root, node2->post_index >= node1->post_index
         }
     }
 

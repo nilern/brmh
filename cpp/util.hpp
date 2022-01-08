@@ -18,6 +18,9 @@ struct opt_ptr {
 
     T* unwrap_or(T* alt) const { return ptr_ ? ptr_ : alt; }
 
+    template<typename R, typename F>
+    opt_ptr<R> map(F f) const { return ptr_ ? opt_ptr<R>::some(f(ptr_)) : opt_ptr<R>::none(); }
+
 private:
     opt_ptr() : ptr_(nullptr) {}
     opt_ptr(T* ptr) : ptr_(ptr) {}
