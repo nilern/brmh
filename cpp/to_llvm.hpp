@@ -5,7 +5,7 @@
 
 #include "llvm/IR/LLVMContext.h"
 
-#include "hossa.hpp"
+#include "hossa/hossa.hpp"
 
 namespace brmh {
 

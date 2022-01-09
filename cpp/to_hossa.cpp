@@ -1,7 +1,7 @@
 #include <cstring>
 
 #include "fast.hpp"
-#include "hossa.hpp"
+#include "hossa/hossa.hpp"
 
 namespace brmh {
 

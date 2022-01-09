@@ -8,10 +8,10 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/IRBuilder.h"
 
-#include "util.hpp"
-#include "bumparena.hpp"
-#include "name.hpp"
-#include "type.hpp"
+#include "../util.hpp"
+#include "../bumparena.hpp"
+#include "../name.hpp"
+#include "../type.hpp"
 
 namespace brmh {
 

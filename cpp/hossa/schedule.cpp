@@ -1,6 +1,6 @@
-#include "hossa_schedule.hpp"
+#include "schedule.hpp"
 
-#include "hossa_doms.hpp"
+#include "doms.hpp"
 
 namespace brmh::hossa::schedule {
 

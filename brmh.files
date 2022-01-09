@@ -17,6 +17,12 @@ cpp/filename.cpp
 cpp/filename.hpp
 cpp/hossa.cpp
 cpp/hossa.hpp
+cpp/hossa/doms.cpp
+cpp/hossa/doms.hpp
+cpp/hossa/hossa.cpp
+cpp/hossa/hossa.hpp
+cpp/hossa/schedule.cpp
+cpp/hossa/schedule.hpp
 cpp/hossa_doms.cpp
 cpp/hossa_doms.hpp
 cpp/hossa_schedule.cpp

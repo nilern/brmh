@@ -3,7 +3,7 @@
 
 #include "bumparena.hpp"
 #include "type.hpp"
-#include "hossa.hpp"
+#include "hossa/hossa.hpp"
 
 namespace brmh::fast {
 

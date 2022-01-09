@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 #include "hossa.hpp"
-#include "hossa_doms.hpp"
+#include "doms.hpp"
 
 namespace brmh::hossa::schedule {
 

@@ -4,9 +4,9 @@
 #include "llvm/IR/IRBuilder.h"
 #include "llvm/IR/Verifier.h"
 
-#include "hossa.hpp"
-#include "hossa_doms.hpp"
-#include "hossa_schedule.hpp"
+#include "hossa/hossa.hpp"
+#include "hossa/doms.hpp"
+#include "hossa/schedule.hpp"
 
 namespace brmh {
 

@@ -3,7 +3,7 @@
 
 #include <unordered_map>
 
-#include "util.hpp"
+#include "../util.hpp"
 #include "hossa.hpp"
 
 namespace brmh::hossa::doms {

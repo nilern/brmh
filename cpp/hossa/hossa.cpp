@@ -1,5 +1,5 @@
 #include "hossa.hpp"
-#include "hossa_schedule.hpp"
+#include "schedule.hpp"
 
 #include <cstring>
 
