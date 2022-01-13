@@ -2,9 +2,9 @@
 
 #include "doms.hpp"
 
-namespace brmh::hossa::schedule {
+namespace brmh::cps::schedule {
 
-struct SetupVisitor : public hossa::TransfersExprsVisitor {
+struct SetupVisitor : public cps::TransfersExprsVisitor {
     std::vector<Expr const*> post_order;
     std::unordered_map<Expr const*, std::vector<Expr const*>> use_exprs;
     std::unordered_map<Expr const*, std::vector<Transfer const*>> use_transfers;

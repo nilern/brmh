@@ -3,10 +3,10 @@
 
 #include <unordered_map>
 
-#include "hossa.hpp"
+#include "cps.hpp"
 #include "doms.hpp"
 
-namespace brmh::hossa::schedule {
+namespace brmh::cps::schedule {
 
 using Schedule = std::unordered_map<Expr const*, Block const*>;
 

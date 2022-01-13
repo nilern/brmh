@@ -2,7 +2,7 @@
 
 #include <optional>
 
-namespace brmh::hossa::doms {
+namespace brmh::cps::doms {
 
 using CompactDomTree = std::vector<std::optional<PostIndex>>;
 
@@ -33,8 +33,10 @@ DomTree DomTree::of(Fn const* fn) {
     // Initialize predecessors:
     std::vector<std::vector<PostIndex>> predecessors(post_order.size());
     for (PostIndex i = 0; i < post_order.size(); ++i) {
-        for (Block const* succ : post_order[i]->transfer->successors()) {
-            predecessors[block_indices[succ]].push_back(i);
+        for (Cont const* succ : post_order[i]->transfer->successors()) {
+            succ->as_block().iter([&] (Block const* succ) {
+                predecessors[block_indices[succ]].push_back(i);
+            });
         }
     }
 

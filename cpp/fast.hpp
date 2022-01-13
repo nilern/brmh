@@ -3,44 +3,37 @@
 
 #include "bumparena.hpp"
 #include "type.hpp"
-#include "hossa/hossa.hpp"
+#include "cps/cps.hpp"
 
 namespace brmh::fast {
 
+struct Call;
 struct Program;
 
-// # to_hossa utils
+// # to_cps utils
 
-struct ToHossaCont {
-    virtual bool is_tail() const = 0;
+struct ToCpsCont {
     virtual bool is_trivial() const = 0;
-    virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const = 0;
+    virtual cps::Expr* operator()(cps::Builder& builder, Span span, cps::Expr*) const = 0;
+    virtual cps::Expr* call_to(cps::Builder& builder, Call const* fast_call, std::span<cps::Expr*> cps_exprs) const = 0;
 };
 
-struct ToHossaNextCont : public ToHossaCont {
-    ToHossaNextCont();
+struct ToCpsNextCont : public ToCpsCont {
+    ToCpsNextCont();
 
-    virtual bool is_tail() const override;
     virtual bool is_trivial() const override;
-    virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const override;
+    virtual cps::Expr* operator()(cps::Builder& builder, Span span, cps::Expr*) const override;
+    virtual cps::Expr* call_to(cps::Builder& builder, Call const* fast_call, std::span<cps::Expr*> cps_exprs) const override;
 };
 
-struct ToHossaLabelCont : public ToHossaCont {
-    ToHossaLabelCont(hossa::Block*);
+struct ToCpsTrivialCont : public ToCpsCont {
+    cps::Cont* cont;
 
-    virtual bool is_tail() const override;
+    ToCpsTrivialCont(cps::Cont* cont);
+
     virtual bool is_trivial() const override;
-    virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const override;
-
-    hossa::Block* block;
-};
-
-struct ToHossaReturnCont : public ToHossaCont {
-    ToHossaReturnCont();
-
-    virtual bool is_tail() const override;
-    virtual bool is_trivial() const override;
-    virtual hossa::Expr* operator()(hossa::Builder& builder, Span span, hossa::Expr*) const override;
+    virtual cps::Expr* operator()(cps::Builder& builder, Span span, cps::Expr*) const override;
+    virtual cps::Expr* call_to(cps::Builder& builder, Call const* fast_call, std::span<cps::Expr*> cps_exprs) const override;
 };
 
 // # Param
@@ -63,7 +56,7 @@ private:
 struct Expr {
     virtual void print(Names const& names, std::ostream& dest) const = 0;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const = 0;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const = 0;
 
     Span span;
     type::Type* type;
@@ -75,7 +68,7 @@ protected:
 struct If : public Expr {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
 
     Expr* cond;
     Expr* conseq;
@@ -110,7 +103,7 @@ struct Call : public Expr {
         dest << ')';
     }
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
 
 private:
     friend struct Program;
@@ -151,7 +144,7 @@ protected:
 struct AddWI64 : public PrimApp<2> {
     virtual char const* opname() const override;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
 
 private:
     friend struct Program;
@@ -162,7 +155,7 @@ private:
 struct SubWI64 : public PrimApp<2> {
     virtual char const* opname() const override;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
 
 private:
     friend struct Program;
@@ -173,7 +166,7 @@ private:
 struct MulWI64 : public PrimApp<2> {
     virtual char const* opname() const override;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
 
 private:
     friend struct Program;
@@ -184,7 +177,7 @@ private:
 struct EqI64 : public PrimApp<2> {
     virtual char const* opname() const override { return "eqI64"; }
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
 
 private:
     friend struct Program;
@@ -195,7 +188,7 @@ private:
 struct Id : public Expr {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
 
     Name name;
 
@@ -215,7 +208,7 @@ struct Bool : public Const {
         dest << (value ? "True" : "False");
     }
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
 
     bool value;
 
@@ -228,7 +221,7 @@ private:
 struct I64 : public Const {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
-    virtual hossa::Expr* to_hossa(hossa::Builder& builder, hossa::Fn* fn, ToHossaCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
 
     const char* digits;
 
@@ -243,8 +236,8 @@ private:
 struct Def {
     virtual void print(Names const& names, std::ostream& dest) const = 0;
 
-    virtual void hossa_declare(hossa::Builder& builder) const = 0;
-    virtual void to_hossa(hossa::Builder& builder) const = 0;
+    virtual void cps_declare(cps::Builder& builder) const = 0;
+    virtual void to_cps(cps::Builder& builder) const = 0;
 
     Span span;
 
@@ -257,8 +250,8 @@ struct FunDef : public Def {
 
     virtual void print(Names const& names, std::ostream& dest) const override;
 
-    virtual void hossa_declare(hossa::Builder& builder) const override;
-    virtual void to_hossa(hossa::Builder& builder) const override;
+    virtual void cps_declare(cps::Builder& builder) const override;
+    virtual void to_cps(cps::Builder& builder) const override;
 
     Name name;
     std::vector<Param> params;
@@ -304,7 +297,7 @@ struct Program {
 
     void print(Names const& names, std::ostream& dest) const;
 
-    hossa::Program to_hossa(Names& names, type::Types& types) const;
+    cps::Program to_cps(Names& names, type::Types& types) const;
 
     std::vector<Def*> defs;
 

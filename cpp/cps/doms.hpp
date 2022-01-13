@@ -4,9 +4,9 @@
 #include <unordered_map>
 
 #include "../util.hpp"
-#include "hossa.hpp"
+#include "cps.hpp"
 
-namespace brmh::hossa::doms {
+namespace brmh::cps::doms {
 
 using PostIndex = std::size_t;
 

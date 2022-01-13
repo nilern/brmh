@@ -19,15 +19,28 @@ struct ToLLVMCtx;
 
 }
 
-namespace brmh::hossa {
+namespace brmh::cps {
 
 struct Expr;
 struct Transfer;
+struct Cont;
 struct Block;
+struct Return;
 struct Fn;
 class Builder;
 
-// # Visitors
+// # Util Classes
+
+struct PrintCtx {
+    Names const& names;
+    std::unordered_map<Block const*, std::vector<Expr const*>> block_exprs;
+    std::unordered_set<Expr const*> visited_exprs;
+
+    PrintCtx(Names const& names_,
+             std::unordered_map<Block const*, std::vector<Expr const*>>&& block_exprs_,
+             std::unordered_set<Expr const*>&& visited_exprs_)
+        : names(names_), block_exprs(block_exprs_), visited_exprs(visited_exprs_) {}
+};
 
 struct TransfersExprsVisitor {
     virtual void visit(Transfer const* transfer) = 0;
@@ -61,53 +74,12 @@ public:
         }
     }
 
-    virtual void do_print(Names& names, std::ostream& dest) const = 0;
+    virtual void do_print(Names const& names, std::ostream& dest) const = 0;
 
-    void print_in(Names& names, std::ostream& dest, std::unordered_map<Expr const*, Block const*> const& schedule,
-                  std::unordered_set<Expr const*>& visited_exprs, Block const* block) const;
+    void print_in(PrintCtx& ctx, std::ostream& dest) const;
 
     virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
     llvm::Value* to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
-};
-
-// ## Call
-
-struct Call : public Expr {
-    std::span<Expr*> exprs;
-
-private:
-    friend class Builder;
-
-    Call(Span span, Name name, type::Type* type, std::span<Expr*> exprs_)
-        : Expr(span, name, type), exprs(exprs_) {}
-
-public:
-    Expr* callee() const { return exprs[0]; }
-
-    std::span<Expr* const> args() const { return exprs.subspan(1); }
-
-    virtual std::span<Expr* const> operands() const override { return exprs; }
-
-    virtual void do_print(Names& names, std::ostream& dest) const override {
-        callee()->name.print(names, dest);
-
-        dest << '(';
-
-        auto arg = args().begin();
-        if (arg != args().end()) {
-            (*arg)->name.print(names, dest);
-            ++arg;
-
-            for (; arg != args().end(); ++arg) {
-                dest << ", ";
-                (*arg)->name.print(names, dest);
-            }
-        }
-
-        dest << ')';
-    }
-
-    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 };
 
 // ## PrimApp
@@ -127,7 +99,7 @@ public:
         return std::span<Expr* const>(args);
     }
 
-    virtual void do_print(Names& names, std::ostream& dest) const override {
+    virtual void do_print(Names const& names, std::ostream& dest) const override {
         dest << "__" << opname();
 
         dest << '(';
@@ -211,7 +183,7 @@ public:
         return std::span<Expr* const>();
     }
 
-    void do_print(Names& names, std::ostream& dest) const override {
+    void do_print(Names const& names, std::ostream& dest) const override {
         dest << "param ";
         name.print(names, dest);
     }
@@ -240,7 +212,7 @@ private:
         : Const(span, name, type), digits(digits_) {}
 
 public:
-    void do_print(Names&, std::ostream& dest) const override {
+    void do_print(Names const&, std::ostream& dest) const override {
         dest << digits;
     }
 
@@ -258,7 +230,7 @@ private:
     Bool(Span span, Name name, type::Type* type, bool v) : Const(span, name, type), value(v) {}
 
 public:
-    virtual void do_print(Names&, std::ostream& dest) const override {
+    virtual void do_print(Names const&, std::ostream& dest) const override {
         dest << (value ? "True" : "False");
     }
 
@@ -275,29 +247,24 @@ protected:
 
 public:
     virtual std::span<Expr* const> operands() const = 0;
-    virtual std::span<Block* const> successors() const = 0;
-    virtual std::span<Expr* const> successors_phi_inputs() const = 0;
+    virtual std::span<Cont* const> successors() const = 0;
 
-    virtual void do_print(Names& names, std::ostream& dest) const = 0;
+    virtual void do_print(Names const& names, std::ostream& dest) const = 0;
 
-    void print(Names& names, std::ostream& dest, std::unordered_map<Expr const*, Block const*> const& schedule,
-               std::unordered_set<Block const*>& visited_blocks, std::unordered_set<Expr const*>& visited_exprs,
-               Block const* block) const;
-
-    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const = 0;
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder, Block const* block) const = 0;
 };
 
 // ## If
 
 struct If : public Transfer {
     Expr* cond;
-    Block* conseq;
-    Block* alt;
+    Cont* conseq;
+    Cont* alt;
 
 private:
     friend class Builder;
 
-    If(Span span, Expr *cond_, Block *conseq_, Block *alt_)
+    If(Span span, Expr *cond_, Cont* conseq_, Cont* alt_)
         : Transfer(span), cond(cond_), conseq(conseq_), alt(alt_) {}
 
 public:
@@ -305,28 +272,26 @@ public:
         return std::span<Expr* const>(&cond, 1);
     }
 
-    virtual std::span<Block* const> successors() const override {
-        return std::span<Block* const>(&conseq, 2);
+    virtual std::span<Cont* const> successors() const override {
+        return std::span<Cont* const>(&conseq, 2);
     }
 
-    virtual std::span<Expr* const> successors_phi_inputs() const override {
-        return std::span<Expr* const>();
-    }
+    void do_print(Names const& names, std::ostream& dest) const override;
 
-    void do_print(Names& names, std::ostream& dest) const override;
-
-    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder, Block const* block) const override;
 };
 
-// ## TailCall
+// ## Call
 
-struct TailCall : public Transfer {
+struct Call : public Transfer {
     std::span<Expr*> exprs;
+    Cont* cont;
 
 private:
     friend class Builder;
 
-    TailCall(Span span, std::span<Expr*> exprs_) : Transfer(span), exprs(exprs_) {}
+    Call(Span span, std::span<Expr*> exprs_, Cont* cont_)
+        : Transfer(span), exprs(exprs_), cont(cont_) {}
 
 public:
     Expr* callee() const { return exprs[0]; }
@@ -335,114 +300,115 @@ public:
 
     virtual std::span<Expr* const> operands() const override { return exprs; }
 
-    virtual std::span<Block* const> successors() const override {
-        return std::span<Block* const>();
+    virtual std::span<Cont* const> successors() const override {
+        return std::span<Cont* const>(&cont, 1);
     }
 
-    virtual std::span<Expr* const> successors_phi_inputs() const override { return std::span<Expr* const>(); }
+    void do_print(Names const& names, std::ostream& dest) const override;
 
-    void do_print(Names& names, std::ostream& dest) const override {
-        dest << "        tailcall ";
-        callee()->name.print(names, dest);
-
-        dest << '(';
-
-        auto arg = args().begin();
-        if (arg != args().end()) {
-            (*arg)->name.print(names, dest);
-            ++arg;
-
-            for (; arg != args().end(); ++arg) {
-                dest << ", ";
-                (*arg)->name.print(names, dest);
-            }
-        }
-
-        dest << ')';
-    }
-
-    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder, Block const* block) const override;
 };
 
 // ## Goto
 
 struct Goto : public Transfer {
-    Block* dest;
+    Cont* dest;
     Expr* res;
 
 private:
     friend class Builder;
 
-    Goto(Span span, Block* dest_, Expr* res_) : Transfer(span), dest(dest_), res(res_) {}
+    Goto(Span span, Cont* dest_, Expr* res_) : Transfer(span), dest(dest_), res(res_) {}
 
 public:
     virtual std::span<Expr* const> operands() const override {
         return std::span<Expr* const>(&res, 1);
     }
 
-    virtual std::span<Block* const> successors() const override {
-        return std::span<Block* const>(&dest, 1);
+    virtual std::span<Cont* const> successors() const override {
+        return std::span<Cont* const>(&dest, 1);
     }
 
-    virtual std::span<Expr* const> successors_phi_inputs() const override {
-        return operands();
-    }
+    void do_print(Names const& names, std::ostream& desto) const override;
 
-    void do_print(Names& names, std::ostream& desto) const override;
+    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder, Block const* block) const override;
+};
 
-    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
+// # Cont
+
+// ## Visitor
+
+struct ContVisitor {
+    virtual void visit(Block const* block) = 0;
+    virtual void visit(Return const* ret) = 0;
+};
+
+// ## Cont
+
+struct Cont {
+    Name name;
+
+protected:
+    Cont(Name name_) : name(name_) {}
+
+public:
+    virtual void accept(ContVisitor& visitor) = 0;
+
+    virtual opt_ptr<Block const> as_block() const = 0;
+
+    virtual void print(PrintCtx& ctx, std::ostream& dest) const = 0;
 };
 
 // ## Return
 
-struct Return : public Transfer {
-    Expr* res;
-
+struct Return : public Cont {
 private:
     friend class Builder;
 
-    Return(Span span, Expr* res_) : Transfer(span), res(res_) {}
+    Return(Name name) : Cont(name) {}
 
 public:
-    virtual std::span<Expr* const> operands() const override {
-        return std::span<Expr* const>(&res, 1);
+    virtual void accept(ContVisitor& visitor) override { visitor.visit(this); }
+
+    virtual opt_ptr<Block const> as_block() const override { return opt_ptr<Block const>::none(); }
+
+    virtual void print(PrintCtx& ctx, std::ostream& dest) const override {
+        name.print(ctx.names, dest);
     }
-
-    virtual std::span<Block* const> successors() const override { return std::span<Block* const>(); }
-
-    virtual std::span<Expr* const> successors_phi_inputs() const override {
-        return std::span<Expr* const>();
-    }
-
-    void do_print(Names& names, std::ostream& dest) const override {
-        dest << "        return ";
-        res->name.print(names, dest);
-    }
-
-    virtual void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
 };
 
-// # Block
+// ## Block
 
-struct Block {
-    Name name;
+struct Block : public Cont {
     std::span<Param*> params;
     Transfer* transfer;
 
 private:
     friend class Builder;
 
-    Block(Name name_, std::span<Param*> params_, Transfer* transfer_)
-        : name(name_), params(params_), transfer(transfer_) {}
+    Block(Name name, std::span<Param*> params_, Transfer* transfer_)
+        : Cont(name), params(params_), transfer(transfer_) {}
 
 public:
+    virtual void accept(ContVisitor& visitor) override { visitor.visit(this); }
+
+    virtual opt_ptr<Block const> as_block() const override { return opt_ptr<Block const>::some(this); }
+
+    virtual void print(PrintCtx& ctx, std::ostream& dest) const override;
+
+    void llvm_declare(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
+    void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
+    void llvm_patch_phis(ToLLVMCtx& ctx) const;
+
     template<typename F>
     void do_post_visit(std::unordered_set<Block const*>& visited, F f) const {
         if (!visited.contains(this)) {
             visited.insert(this);
 
-            for (Block const* succ : transfer->successors()) {
-                succ->do_post_visit(visited, f);
+            for (Cont const* succ : transfer->successors()) {
+                succ->as_block().iter([&] (Block const* succ) {
+                    return succ->do_post_visit(visited, f);
+                });
             }
 
             f(this);
@@ -462,26 +428,19 @@ public:
             visitor.visit(block->transfer);
         });
     }
-
-    void print(Names& names, std::ostream& dest, std::unordered_map<Expr const*, Block const*> const& schedule,
-               std::unordered_set<Block const*>& visited_blocks,
-               std::unordered_set<Expr const*>& visited_exprs) const;
-
-    void llvm_declare(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
-    void to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const;
-    void llvm_patch_phis(ToLLVMCtx& ctx) const;
 };
 
 // # Fn
 
 struct Fn : public Expr {
+    Return* ret;
     Block* entry;
 
 private:
     friend class Builder;
 
-    Fn(Span span, Name name, type::FnType* type, Block* entry_)
-        : Expr(span, name, type), entry(entry_) {}
+    Fn(Span span, Name name, type::FnType* type, Return* ret_, Block* entry_)
+        : Expr(span, name, type), ret(ret_), entry(entry_) {}
 
 public:
     virtual std::span<Expr* const> operands() const override { return std::span<Expr* const>(); }
@@ -498,15 +457,14 @@ public:
         entry->do_post_visit_transfers_and_exprs(visited_blocks, visited_exprs, visitor);
     }
 
-    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
-
-    void do_print(Names &names, std::ostream &dest) const override {
+    void do_print(Names const& names, std::ostream &dest) const override {
         dest << "fun ";
         name.print(names, dest);
     }
 
-    void print_def(Names& names, std::ostream& dest) const;
+    void print_def(Names const& names, std::ostream& dest) const;
 
+    virtual llvm::Value* do_to_llvm(ToLLVMCtx& ctx, llvm::IRBuilder<>& builder) const override;
     void llvm_declare(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module, llvm::Function::LinkageTypes linkage) const;
     void llvm_define(Names const& names, llvm::LLVMContext& llvm_ctx, llvm::Module& module) const;
 };
@@ -524,7 +482,7 @@ private:
         : externs(std::move(externs_)), arena_(std::move(arena)) {}
 
 public:
-    void print(Names& names, std::ostream& dest) const {
+    void print(Names const& names, std::ostream& dest) const {
         for (Fn* const ext_fn : externs) {
             ext_fn->print_def(names, dest);
             dest << std::endl << std::endl;
@@ -560,8 +518,8 @@ public:
 
     // OPTIMIZE: deduplicate constants, constant folding, CSE etc.:
 
-    Fn* fn(Span span, Name name, type::FnType* type, bool external, Block* entry) {
-        Fn* const res = new (arena_.alloc<Fn>()) Fn(span, name, type, entry);
+    Fn* fn(Span span, Name name, type::FnType* type, bool external, Return* ret, Block* entry) {
+        Fn* const res = new (arena_.alloc<Fn>()) Fn(span, name, type, ret, entry);
         exprs_.insert({name, res});
         if (external) { externs_.push_back(res); }
         return res;
@@ -573,6 +531,8 @@ public:
         std::span<Param*> const params = std::span(static_cast<Param**>(arena_.alloc_array<Param*>(arity)), arity);
         return new (arena_.alloc<Block>()) Block(names_->fresh(), params, transfer);
     }
+
+    Return* return_(Name name) { return new (arena_.alloc<Return>()) Return(name); }
 
     Param* param(Span span, type::Type* type, Block* block_, Name name, std::size_t index) {
         Param* const param = new (arena_.alloc<Param>()) Param(span, name, type);
@@ -592,20 +552,12 @@ public:
         return new (arena_.alloc<If>()) If(span, cond, conseq, alt);
     }
 
-    Transfer* tail_call(Span span, std::span<Expr*> exprs) {
-        return new (arena_.alloc<TailCall>()) TailCall(span, exprs);
+    Transfer* call(Span span, std::span<Expr*> exprs, Cont* cont) {
+        return new (arena_.alloc<Call>()) Call(span, exprs, cont);
     }
 
-    Transfer *goto_(Span span, Block *dest, Expr *res) {
+    Transfer *goto_(Span span, Cont* dest, Expr *res) {
         return new (arena_.alloc<Goto>()) Goto(span, dest, res);
-    }
-
-    Transfer* ret(Span span, Expr* expr) {
-        return new (arena_.alloc<Return>()) Return(span, expr);
-    }
-
-    Expr* call(Span span, type::Type* type, std::span<Expr*> exprs) {
-        return new (arena_.alloc<Call>()) Call(span, names_->fresh(), type, exprs);
     }
 
     Expr* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args) {
@@ -639,6 +591,6 @@ public:
     Program build() { return Program(std::move(arena_), std::move(externs_)); }
 };
 
-} // namespace brmh::hossa
+} // namespace brmh::cps
 
 #endif // HOSSA_HPP

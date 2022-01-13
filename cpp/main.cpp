@@ -31,11 +31,11 @@
 
 #include "typer.cpp"
 
-#include "hossa/hossa.cpp"
-#include "hossa/doms.cpp"
-#include "hossa/schedule.cpp"
+#include "cps/cps.cpp"
+#include "cps/doms.cpp"
+#include "cps/schedule.cpp"
 
-#include "to_hossa.cpp"
+#include "to_cps.cpp"
 
 #include "to_llvm.cpp"
 
@@ -129,8 +129,8 @@ int main (int argc, char const* const* argv) {
 
             std::cout << "HO-SSA\n======" << std::endl << std::endl;
 
-            brmh::hossa::Program hossa_program = typed_program.to_hossa(names, types);
-            hossa_program.print(names, std::cout);
+            brmh::cps::Program cps_program = typed_program.to_cps(names, types);
+            cps_program.print(names, std::cout);
 
             std::cout << "LLVM IR\n=======" << std::endl << std::endl;
 
@@ -159,7 +159,7 @@ int main (int argc, char const* const* argv) {
             llvm::Module llvm_module("bmrh program", llvm_ctx);
             llvm_module.setTargetTriple(target_triple);
             llvm_module.setDataLayout(target_machine->createDataLayout());
-            hossa_program.to_llvm(names, llvm_ctx, llvm_module);
+            cps_program.to_llvm(names, llvm_ctx, llvm_module);
 
             for (const auto& fn : llvm_module.functions()) {
                 fn.print(llvm::errs());
