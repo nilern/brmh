@@ -45,17 +45,17 @@ ast::FunDef* Parser::parse_fundef() {
 
     const auto name = parse_id();
 
-    std::vector<ast::Param> params;
+    std::vector<ast::Pat*> params;
     lexer_.match(Lexer::Token::Type::LPAREN); // Discard '('
 
     if (lexer_.peek_some().typ == Lexer::Token::Type::RPAREN) {
         lexer_.next(); // Discard ')'
     } else {
-        params.push_back(parse_param());
+        params.push_back(parse_pat());
 
         while (lexer_.peek_some().typ == Lexer::Token::Type::COMMA) {
             lexer_.next(); // Discard ','
-            params.push_back(parse_param());
+            params.push_back(parse_pat());
         }
 
         lexer_.match(Lexer::Token::Type::RPAREN); // Discard ')'
@@ -69,15 +69,6 @@ ast::FunDef* Parser::parse_fundef() {
     const Pos end_pos = lexer_.pos();
 
     return new ast::FunDef(Span{start_pos, end_pos}, name, std::move(params), codomain, body);
-}
-
-ast::Param Parser::parse_param() {
-    const Pos start_pos = lexer_.pos();
-    const auto name = parse_id();
-    lexer_.match(Lexer::Token::Type::COLON); // Discard ':'
-    const auto type = parse_type();
-    const Pos end_pos = lexer_.pos();
-    return ast::Param{Span{start_pos, end_pos}, name, type};
 }
 
 // block ::= '{' (stmt ';')* expr '}'
@@ -207,7 +198,22 @@ ast::Expr* Parser::parse_callee() {
     }
 }
 
+// pat ::= unann_pat (':' type)*
 ast::Pat* Parser::parse_pat() {
+    ast::Pat* pat = parse_unann_pat();
+    Pos const start_pos = pat->span.start;
+
+    while (lexer_.peek_some().typ == Lexer::Token::Type::COLON) {
+        lexer_.next(); // Discard ":"
+        type::Type* const type = parse_type();
+        Span span{start_pos, lexer_.pos()};
+        pat = new ast::AnnPat(span, pat, type);
+    }
+
+    return pat;
+}
+
+ast::Pat* Parser::parse_unann_pat() {
     const auto tok = lexer_.peek_some();
     switch (tok.typ) {
     case Lexer::Token::Type::ID: {

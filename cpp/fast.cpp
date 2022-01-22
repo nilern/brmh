@@ -4,16 +4,6 @@
 
 namespace brmh::fast {
 
-// # Param
-
-Param::Param(Span span_, Name name_, type::Type* type_) : span(span_), name(name_), type(type_) {}
-
-void Param::print(Names const& names, std::ostream& dest) const {
-    name.print(names, dest);
-    dest << " : ";
-    type->print(names, dest);
-}
-
 // # Expr
 
 Expr::Expr(Span span_, type::Type* type_) : span(span_), type(type_) {}
@@ -87,13 +77,13 @@ Def::Def(Span span_) : span(span_) {}
 
 // ## FunDef
 
-FunDef::FunDef(Span span, Name name_, std::vector<Param>&& params_, type::Type* codomain_, Expr* body_)
+FunDef::FunDef(Span span, Name name_, std::vector<Pat*>&& params_, type::Type* codomain_, Expr* body_)
     : Def(span), name(name_), params(params_), codomain(codomain_), body(body_) {}
 
 std::vector<type::Type*> fast::FunDef::domain() const {
     std::vector<type::Type*> res;
-    for (const Param& param : params) {
-        res.push_back(param.type);
+    for (Pat const* param : params) {
+        res.push_back(param->type);
     }
     return res;
 }
@@ -106,12 +96,12 @@ void FunDef::print(Names const& names, std::ostream& dest) const {
 
     auto param = params.begin();
     if (param != params.end()) {
-        param->print(names, dest);
+        (*param)->print(names, dest);
         ++param;
 
         for (; param != params.end(); ++param) {
             dest << ", ";
-            param->print(names, dest);
+            (*param)->print(names, dest);
         }
     }
 
@@ -128,8 +118,6 @@ void FunDef::print(Names const& names, std::ostream& dest) const {
 }
 
 // # Program
-
-Param Program::param(Span span, Name name, type::Type* type) { return Param(span, name, type); }
 
 If* Program::if_(Span span, type::Type *type, Expr *cond, Expr *conseq, Expr *alt) {
     return new(arena_.alloc<If>()) If(span, type, cond, conseq, alt);
@@ -158,7 +146,7 @@ I64* Program::const_i64(Span span, type::Type* type, const char* chars, std::siz
     return new(arena_.alloc<I64>()) I64(span, type, chars, size);
 }
 
-FunDef* Program::fun_def(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Expr* body) {
+FunDef* Program::fun_def(Span span, Name name, std::vector<Pat*>&& params, type::Type* codomain, Expr* body) {
     return new(arena_.alloc<FunDef>()) FunDef(span, name, std::move(params), codomain, body);
 }
 

@@ -30,10 +30,13 @@ private:
     ast::Expr* parse_callee();
     std::vector<ast::Expr*> parse_arglist();
     Name parse_id();
-    ast::Param parse_param();
     ast::Block* parse_block();
+
     ast::Stmt* parse_stmt();
+
     ast::Pat* parse_pat();
+    ast::Pat* parse_unann_pat();
+
     std::vector<ast::Def*> parse_defs();
     ast::FunDef* parse_fundef();
 

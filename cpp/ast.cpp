@@ -4,14 +4,6 @@
 
 namespace brmh::ast {
 
-// # Param
-
-void Param::print(Names const& names, std::ostream& dest) const {
-    name.print(names, dest);
-    dest << " : ";
-    type->print(names, dest);
-}
-
 // # Expr
 
 Expr::Expr(Span sp) : span(sp) {}
@@ -112,9 +104,6 @@ Def::Def(Span span_) : span(span_) {}
 
 // ## FunDef
 
-FunDef::FunDef(Span span, Name name_, std::vector<Param>&& params_, type::Type* codomain_, Block* body_)
-    : Def(span), name(name_), params(params_), codomain(codomain_), body(body_) {}
-
 void FunDef::print(Names const& names, std::ostream& dest) const {
     dest << "fun ";
     name.print(names, dest);
@@ -123,12 +112,12 @@ void FunDef::print(Names const& names, std::ostream& dest) const {
 
     auto param = params.begin();
     if (param != params.end()) {
-        param->print(names, dest);
+        (*param)->print(names, dest);
         ++param;
 
         for (; param != params.end(); ++param) {
             dest << ", ";
-            param->print(names, dest);
+            (*param)->print(names, dest);
         }
     }
 

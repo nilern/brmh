@@ -13,18 +13,6 @@ namespace brmh::ast {
 
 struct Stmt;
 
-// # Param
-
-struct Param {
-    Span span;
-    Name name;
-    type::Type* type;
-
-    Name declare(TypeEnv& env) const;
-
-    void print(Names const& names, std::ostream& dest) const;
-};
-
 // # Exprs
 
 struct Expr {
@@ -171,6 +159,23 @@ struct IdPat : public Pat {
     virtual fast::Pat* type_of(fast::Program& program, TypeEnv& env) const override;
 };
 
+// ## AnnPat
+
+struct AnnPat : public Pat {
+    Pat* pat;
+    type::Type* type;
+
+    AnnPat(Span span, Pat* pat_, type::Type* type_) : Pat(span), pat(pat_), type(type_) {}
+
+    virtual void print(Names const& names, std::ostream& dest) const override {
+        pat->print(names, dest);
+        dest << " : ";
+        type->print(names, dest);
+    }
+
+    virtual fast::Pat* type_of(fast::Program& program, TypeEnv& env) const override;
+};
+
 // # Statements
 
 struct Stmt {
@@ -212,11 +217,12 @@ struct Def {
 
 struct FunDef : public Def {
     Name name;
-    std::vector<Param> params;
+    std::vector<Pat*> params;
     type::Type* codomain;
     Block* body;
 
-    FunDef(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Block* body);
+    FunDef(Span span, Name name_, std::vector<Pat*>&& params_, type::Type* codomain_, Block* body_)
+        : Def(span), name(name_), params(params_), codomain(codomain_), body(body_) {}
 
     std::vector<type::Type*> domain() const;
 

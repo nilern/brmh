@@ -179,8 +179,9 @@ void fast::FunDef::to_cps(cps::Builder& builder) const {
 
     cps::Block* const entry = builder.block(params.size(), nullptr);
     std::size_t i = 0;
-    for (const Param& param : params) {
-        builder.param(param.span, param.type, entry, param.name, i);
+    for (Pat* pat : params) {
+        IdPat const* const param= pat->as_id().unwrap();
+        builder.param(param->span, param->type, entry, param->name, i);
         ++i;
     }
     fn->entry = entry;

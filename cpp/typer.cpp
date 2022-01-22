@@ -27,36 +27,27 @@ fast::Program ast::Program::check(Names& names, type::Types& types) {
 // # Defs
 
 void ast::FunDef::declare(TypeEnv &env) {
-    env.declare(name, env.types().fn(domain(), codomain));
+    env.declare(name, env.uv());
 }
 
 fast::Def* ast::FunDef::check(fast::Program& program, TypeEnv& parent_env) {
-    Name const unique_name = parent_env.find(name).value().first;
+    auto const binding = parent_env.find(name).value();
+    Name const unique_name = binding.first;
 
     TypeEnv env = parent_env.push_frame();
-    std::vector<fast::Param> new_params;
-    for (const Param& param : params) {
-        Name const unique_name = param.declare(env);
-        new_params.push_back(program.param(param.span, unique_name, param.type));
+    std::vector<fast::Pat*> new_params;
+    std::vector<type::Type*> domain;
+    for (Pat const* param : params) {
+        fast::Pat* const new_param = param->type_of(program, env);
+        new_params.push_back(new_param);
+        domain.push_back(new_param->type);
     }
 
     fast::Expr* typed_body = body->check(program, env, codomain);
 
+    binding.second->unify(env.types().fn(std::move(domain), codomain), span);
+
     return program.fun_def(span, unique_name, std::move(new_params), codomain, typed_body);
-}
-
-std::vector<type::Type*> ast::FunDef::domain() const {
-    std::vector<type::Type*> res;
-    for (const Param& param : params) {
-        res.push_back(param.type);
-    }
-    return res;
-}
-
-// # Params
-
-Name ast::Param::declare(TypeEnv &env) const {
-    return env.declare(name, type);
 }
 
 // # Expressions
@@ -183,6 +174,10 @@ fast::Pat* ast::IdPat::type_of(fast::Program& program, TypeEnv& env) const {
     auto const type = env.uv();
     Name const unique_name = env.declare(name, type);
     return program.id_pat(span, type, unique_name);
+}
+
+fast::Pat* ast::AnnPat::type_of(fast::Program& program, TypeEnv& env) const {
+    return pat->check(program, env, type);
 }
 
 // # Statements

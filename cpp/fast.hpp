@@ -41,21 +41,6 @@ struct ToCpsTrivialCont : public ToCpsCont {
     virtual cps::Expr* call_to(cps::Builder& builder, Call const* fast_call, std::span<cps::Expr*> cps_exprs) const override;
 };
 
-// # Param
-
-struct Param {
-    void print(Names const& names, std::ostream& dest) const;
-
-    Span span;
-    Name name;
-    type::Type* type;
-
-private:
-    friend struct Program;
-
-    Param(Span span, Name name, type::Type* type);
-};
-
 // # Exprs
 
 struct Expr {
@@ -342,21 +327,19 @@ struct FunDef : public Def {
     virtual void to_cps(cps::Builder& builder) const override;
 
     Name name;
-    std::vector<Param> params;
+    std::vector<Pat*> params;
     type::Type* codomain;
     Expr* body;
 
 private:
     friend struct Program;
 
-    FunDef(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Expr* body);
+    FunDef(Span span, Name name, std::vector<Pat*>&& params, type::Type* codomain, Expr* body);
 };
 
 // # Program
 
 struct Program {
-    Param param(Span span, Name name, type::Type* type);
-
     std::span<Stmt*> stmts(std::size_t count) {
         return std::span<Stmt*>(static_cast<Stmt**>(arena_.alloc_array<Stmt*>(count)), count);
     }
@@ -395,7 +378,7 @@ struct Program {
         return new (arena_.alloc<IdPat>()) IdPat(span, type, name);
     }
 
-    FunDef* fun_def(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Expr* body);
+    FunDef* fun_def(Span span, Name name, std::vector<Pat*>&& params, type::Type* codomain, Expr* body);
 
     void push_toplevel(Def* def);
 

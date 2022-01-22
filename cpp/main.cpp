@@ -208,6 +208,10 @@ int main (int argc, char const* const* argv) {
             std::cerr << error.what() << " at ";
             error.pos.print(std::cerr);
             return EXIT_FAILURE;
+        } catch (const brmh::type::Error& error) {
+            std::cerr << error.what() << " at ";
+            error.span.print(std::cerr);
+            return EXIT_FAILURE;
         } catch (const brmh::BrmhError& error) {
             std::cerr << error.what() << std::endl;
             return EXIT_FAILURE;
