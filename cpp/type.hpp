@@ -18,15 +18,6 @@ struct Bool;
 struct I64;
 class Types;
 
-class Error : public BrmhError {
-public:
-    explicit Error(Span span);
-
-    virtual const char* what() const noexcept override;
-
-    Span span;
-};
-
 struct Type {
     virtual Type* find() { return this; }
 
@@ -167,6 +158,59 @@ public:
     FnType* fn(std::vector<Type*>&& domain, Type* codomain);
     Bool* get_bool();
     I64* get_i64();
+};
+
+// # Errors
+
+class Error : public BrmhError {
+public:
+    Span span;
+
+protected:
+    explicit Error(Span span);
+
+public:
+    virtual const char* what() const noexcept;
+};
+
+class UnboundError : public Error {
+public:
+    explicit UnboundError(Span span) : Error(span) {}
+
+    virtual const char* what() const noexcept override { return "UnboundError"; }
+};
+
+class UnificationError : public Error {
+public:
+    Type const* left;
+    Type const* right;
+
+    UnificationError(Span span, Type const* left_, Type const* right_)
+        : Error(span), left(left_), right(right_) {}
+
+    virtual const char* what() const noexcept override { return "UnificationError"; }
+};
+
+class OccursError : public Error {
+public:
+    Uv const* uv;
+    Type const* type;
+
+    OccursError(Span span, Uv const* uv_, Type const* type_)
+        : Error(span), uv(uv_), type(type_) {}
+
+    virtual const char* what() const noexcept override { return "OccursError"; }
+};
+
+class PrimArgcError : public Error {
+public:
+    std::size_t expected;
+    std::size_t actual;
+
+    PrimArgcError(Span span, std::size_t expected_, std::size_t actual_)
+        : Error(span), expected(expected_), actual(actual_) {}
+
+    virtual const char* what() const noexcept override { return "PrimArgcError"; }
 };
 
 } // namespace brmh

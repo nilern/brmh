@@ -30,7 +30,7 @@ std::vector<ast::Def*> Parser::parse_defs() {
                 break;
             }
 
-            default: throw Error(tok->pos);
+            default: throw Error(tok->span.start);
             }
         } else {
             return defs;
@@ -141,7 +141,7 @@ ast::Expr* Parser::parse_callee() {
         lexer_.match(Lexer::Token::Type::ELSE); // Discard "else"
         auto const alt = parse_block();
 
-        Span span{if_tok.pos, lexer_.pos()};
+        Span span{if_tok.span.start, lexer_.pos()};
         return new ast::If(span, cond, conseq, alt);
     }
 
@@ -158,43 +158,39 @@ ast::Expr* Parser::parse_callee() {
                     ? ast::PrimApp::Op::MUL_W_I64
                     : strncmp(op_tok.chars, "__eqI64", op_tok.size) == 0
                       ? ast::PrimApp::Op::EQ_I64
-                      :  throw Error(op_tok.pos);
+                      :  throw Error(op_tok.span.start);
 
         std::vector<ast::Expr*> args = parse_arglist();
 
-        Span span{op_tok.pos, lexer_.pos()};
+        Span span{op_tok.span.start, lexer_.pos()};
         return new ast::PrimApp(span, op, std::move(args));
     }
 
     case Lexer::Token::Type::ID: {
         lexer_.next();
 
-        Span span{tok.pos, lexer_.pos()};
-        return new ast::Id(span, names_.sourced(tok.chars, tok.size));
+        return new ast::Id(tok.span, names_.sourced(tok.chars, tok.size));
     }
 
     case Lexer::Token::Type::TRUE: {
         lexer_.next();
 
-        Span span{tok.pos, lexer_.pos()};
-        return new ast::Bool(span, true);
+        return new ast::Bool(tok.span, true);
     }
 
     case Lexer::Token::Type::FALSE: {
         lexer_.next();
 
-        Span span{tok.pos, lexer_.pos()};
-        return new ast::Bool(span, false);
+        return new ast::Bool(tok.span, false);
     }
 
     case Lexer::Token::Type::INT: {
         lexer_.next();
 
-        Span span{tok.pos, lexer_.pos()};
-        return new ast::Int(span, tok.chars, tok.size);
+        return new ast::Int(tok.span, tok.chars, tok.size);
     }
 
-    default: throw Error(tok.pos);
+    default: throw Error(tok.span.start);
     }
 }
 
@@ -219,11 +215,10 @@ ast::Pat* Parser::parse_unann_pat() {
     case Lexer::Token::Type::ID: {
         lexer_.next();
 
-        Span span{tok.pos, lexer_.pos()};
-        return new ast::IdPat(span, names_.sourced(tok.chars, tok.size));
+        return new ast::IdPat(tok.span, names_.sourced(tok.chars, tok.size));
     }
 
-    default: throw Error(tok.pos);
+    default: throw Error(tok.span.start);
     }
 }
 
@@ -231,7 +226,7 @@ ast::Stmt* Parser::parse_stmt() {
     const auto tok = lexer_.peek_some();
     switch (tok.typ) {
     case Lexer::Token::Type::VAL: { // 'val' pat '=' expr
-        auto const start_pos = tok.pos;
+        auto const start_pos = tok.span.start;
         lexer_.next(); // Discard "val"
         auto const pat = parse_pat();
         lexer_.match(Lexer::Token::Type::EQUALS); // Discard '='
@@ -241,7 +236,7 @@ ast::Stmt* Parser::parse_stmt() {
         return new ast::Val(span, pat, val_expr);
     }
 
-    default: throw Error(tok.pos);
+    default: throw Error(tok.span.start);
     }
 }
 
@@ -258,7 +253,7 @@ type::Type* Parser::parse_type() {
         return types_.get_i64();
     }
 
-    default: throw Error(tok.pos);
+    default: throw Error(tok.span.start);
     }
 }
 
@@ -270,7 +265,7 @@ Name Parser::parse_id() {
         return names_.sourced(tok.chars, tok.size);
     }
 
-    default: throw Error(tok.pos);
+    default: throw Error(tok.span.start);
     }
 }
 

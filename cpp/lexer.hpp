@@ -6,7 +6,7 @@
 #include <ostream>
 
 #include "src.hpp"
-#include "pos.hpp"
+#include "span.hpp"
 #include "error.hpp"
 
 namespace brmh {
@@ -29,7 +29,7 @@ struct Lexer {
         Type typ;
         const char* chars;
         uintptr_t size;
-        Pos pos;
+        Span span;
     };
 
     class Error : public BrmhError {

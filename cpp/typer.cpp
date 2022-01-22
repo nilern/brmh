@@ -85,19 +85,24 @@ fast::Expr* ast::If::type_of(fast::Program& program, TypeEnv& env) const {
 }
 
 fast::Expr* ast::Call::type_of(fast::Program &program, TypeEnv &env) const {
-    fast::Expr* const typed_callee = callee->type_of(program, env);
+    std::size_t arity = args.size();
 
-    type::FnType* const callee_type = dynamic_cast<type::FnType*>(typed_callee->type); // OPTIMIZE
-    if (!callee_type) { throw type::Error(span); }
+    std::vector<type::Type*> domain;
+    domain.reserve(arity);
+    for (std::size_t i = 0; i < args.size(); ++i) {
+        domain.push_back(env.uv());
+    }
+    auto const codomain = env.uv();
+    auto const callee_type = env.types().fn(std::move(domain), codomain);
 
-    if (args.size() != callee_type->domain.size()) { throw type::Error(span); }
-    std::size_t arity = callee_type->domain.size();
+    fast::Expr* const typed_callee = callee->check(program, env, callee_type);
+
     std::span<fast::Expr*> typed_args = program.args(arity);
     for (std::size_t i = 0; i < arity; ++i) {
         typed_args[i] = args[i]->check(program, env, callee_type->domain[i]);
     }
 
-    return program.call(span, callee_type->codomain, typed_callee, typed_args);
+    return program.call(span, codomain, typed_callee, typed_args);
 }
 
 fast::Expr* ast::PrimApp::type_of(fast::Program& program, TypeEnv& env) const {
@@ -106,7 +111,7 @@ fast::Expr* ast::PrimApp::type_of(fast::Program& program, TypeEnv& env) const {
     case ast::PrimApp::Op::SUB_W_I64:
     case ast::PrimApp::Op::MUL_W_I64: {
         // FIXME: Brittle '2':s:
-        if (args.size() != 2) { throw type::Error(span); }
+        if (args.size() != 2) { throw type::PrimArgcError(span, 2, args.size()); }
 
         std::array<fast::Expr*, 2> typed_args;
 
@@ -124,7 +129,7 @@ fast::Expr* ast::PrimApp::type_of(fast::Program& program, TypeEnv& env) const {
 
     case ast::PrimApp::Op::EQ_I64: {
         // FIXME: Brittle '2':s:
-        if (args.size() != 2) { throw type::Error(span); }
+        if (args.size() != 2) { throw type::PrimArgcError(span, 2, args.size()); }
 
         std::array<fast::Expr*, 2> typed_args;
 
@@ -152,7 +157,7 @@ fast::Expr* ast::Id::type_of(fast::Program& program, TypeEnv& env) const {
     if (opt_binder) {
         return program.id(span, opt_binder->second, opt_binder->first);
     } else {
-        throw type::Error(span);
+        throw type::UnboundError(span);
     }
 }
 
@@ -226,13 +231,13 @@ void type::FnType::unifyFoundFns(type::FnType* other, Span span) {
             if (other_dom != other->domain.end()) {
                 (*other_dom)->unify(*dom, span);
             } else {
-                throw type::Error(span);
+                throw type::UnificationError(span, other, this);
             }
         } else {
             if (other_dom == other->domain.end()) {
                 break;
             } else {
-                throw type::Error(span);
+                throw type::UnificationError(span, other, this);
             }
         }
     }
@@ -240,21 +245,21 @@ void type::FnType::unifyFoundFns(type::FnType* other, Span span) {
     codomain->unify(other->codomain, span);
 }
 
-void type::Type::unifyFoundFns(type::FnType*, Span span) { throw type::Error(span); }
+void type::Type::unifyFoundFns(type::FnType* other, Span span) { throw type::UnificationError(span, other, this); }
 
 void type::Bool::unifyFoundBools(Bool*, Span) {}
 
-void type::Type::unifyFoundBools(Bool*, Span span) { throw type::Error(span); }
+void type::Type::unifyFoundBools(Bool* other, Span span) { throw type::UnificationError(span, other, this); }
 
 void type::I64::unifyFoundI64s(I64*, Span) {}
 
-void type::Type::unifyFoundI64s(I64*, Span span) { throw type::Error(span); }
+void type::Type::unifyFoundI64s(I64* other, Span span) { throw type::UnificationError(span, other, this); }
 
 // ## Occurs Check
 
 void type::Type::occurs_check(Uv *uv, Span span) const {
     if (this == uv) {
-        throw type::Error(span);
+        throw type::OccursError(span, uv, this);
     } else {
         occurs_check_children(uv, span);
     }

@@ -127,7 +127,7 @@ int main (int argc, char const* const* argv) {
             brmh::fast::Program typed_program = program.check(names, types);
             typed_program.print(names, std::cout);
 
-            std::cout << "CPS\n======" << std::endl << std::endl;
+            std::cout << "CPS\n===" << std::endl << std::endl;
 
             brmh::cps::Program cps_program = typed_program.to_cps(names, types);
             cps_program.print(names, std::cout);

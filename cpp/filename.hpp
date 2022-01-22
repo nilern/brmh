@@ -6,7 +6,6 @@ namespace brmh {
 
 struct Filename {
     explicit Filename(const char* chars);
-    Filename() = delete;
     ~Filename();
 
     const char* c_str() const;

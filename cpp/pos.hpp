@@ -1,7 +1,6 @@
 #ifndef BRMH_POS_H
 #define BRMH_POS_H
 
-#include <cstdint>
 #include <ostream>
 
 #include "filename.hpp"
@@ -9,17 +8,20 @@
 namespace brmh {
 
 struct Pos {
-    Pos(const Filename filename, const uintptr_t index);
-    Pos() = delete;
+    Filename filename;
+    std::size_t line;
+    std::size_t column;
 
-    Filename filename() const;
-    uintptr_t index() const;
+    Pos(Filename filename_, std::size_t line_, std::size_t column_)
+        : filename(filename_), line(line_), column(column_) {}
 
     void print(std::ostream& out) const;
 
-private:
-    Filename filename_;
-    uintptr_t index_;
+    Pos next(char c) {
+        return c != '\n' ?
+                    Pos(filename, line, column + 1)
+                  : Pos(filename, line + 1, 1);
+    }
 };
 
 } // namespace brmh
