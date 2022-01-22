@@ -116,7 +116,7 @@ int main (int argc, char const* const* argv) {
             std::cout << std::endl << "AST\n===" << std::endl << std::endl;
 
             brmh::Names names;
-            brmh::type::Types types;
+            brmh::type::Types types(names);
 
             brmh::Parser parser(brmh::Lexer(src), names, types);
             brmh::ast::Program program = parser.program();
@@ -127,7 +127,7 @@ int main (int argc, char const* const* argv) {
             brmh::fast::Program typed_program = program.check(names, types);
             typed_program.print(names, std::cout);
 
-            std::cout << "HO-SSA\n======" << std::endl << std::endl;
+            std::cout << "CPS\n======" << std::endl << std::endl;
 
             brmh::cps::Program cps_program = typed_program.to_cps(names, types);
             cps_program.print(names, std::cout);

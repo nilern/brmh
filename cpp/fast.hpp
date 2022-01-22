@@ -1,6 +1,8 @@
 #ifndef BRMH_FAST_HPP
 #define BRMH_FAST_HPP
 
+#include <optional>
+
 #include "bumparena.hpp"
 #include "type.hpp"
 #include "cps/cps.hpp"
@@ -8,6 +10,7 @@
 namespace brmh::fast {
 
 struct Call;
+struct Stmt;
 struct Program;
 
 // # to_cps utils
@@ -19,7 +22,9 @@ struct ToCpsCont {
 };
 
 struct ToCpsNextCont : public ToCpsCont {
-    ToCpsNextCont();
+    std::optional<Name> param_name;
+
+    ToCpsNextCont(std::optional<Name> param_name);
 
     virtual bool is_trivial() const override;
     virtual cps::Expr* operator()(cps::Builder& builder, Span span, cps::Expr*) const override;
@@ -56,7 +61,7 @@ private:
 struct Expr {
     virtual void print(Names const& names, std::ostream& dest) const = 0;
 
-    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const = 0;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name) const = 0;
 
     Span span;
     type::Type* type;
@@ -65,10 +70,25 @@ protected:
     Expr(Span span, type::Type* type);
 };
 
+struct Block : public Expr {
+    std::span<Stmt*> stmts;
+    Expr* body;
+
+private:
+    friend struct Program;
+
+    Block(Span span, type::Type* type, std::span<Stmt*> stmts_, Expr* body_)
+        : Expr(span, type), stmts(std::move(stmts_)), body(body_) {}
+
+public:
+    virtual void print(Names const& names, std::ostream& dest) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name) const override;
+};
+
 struct If : public Expr {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
-    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name) const override;
 
     Expr* cond;
     Expr* conseq;
@@ -103,7 +123,7 @@ struct Call : public Expr {
         dest << ')';
     }
 
-    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name) const override;
 
 private:
     friend struct Program;
@@ -144,7 +164,7 @@ protected:
 struct AddWI64 : public PrimApp<2> {
     virtual char const* opname() const override;
 
-    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name) const override;
 
 private:
     friend struct Program;
@@ -155,7 +175,7 @@ private:
 struct SubWI64 : public PrimApp<2> {
     virtual char const* opname() const override;
 
-    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name) const override;
 
 private:
     friend struct Program;
@@ -166,7 +186,7 @@ private:
 struct MulWI64 : public PrimApp<2> {
     virtual char const* opname() const override;
 
-    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name) const override;
 
 private:
     friend struct Program;
@@ -177,7 +197,7 @@ private:
 struct EqI64 : public PrimApp<2> {
     virtual char const* opname() const override { return "eqI64"; }
 
-    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name) const override;
 
 private:
     friend struct Program;
@@ -188,7 +208,7 @@ private:
 struct Id : public Expr {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
-    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name) const override;
 
     Name name;
 
@@ -208,7 +228,7 @@ struct Bool : public Const {
         dest << (value ? "True" : "False");
     }
 
-    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name) const override;
 
     bool value;
 
@@ -221,7 +241,7 @@ private:
 struct I64 : public Const {
     virtual void print(Names const& names, std::ostream& dest) const override;
 
-    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const override;
+    virtual cps::Expr* to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name) const override;
 
     const char* digits;
 
@@ -229,6 +249,74 @@ private:
     friend struct Program;
 
     I64(Span span, type::Type* type, const char* digits, std::size_t size);
+};
+
+// # Patterns
+
+struct IdPat;
+
+struct Pat {
+    Span span;
+    type::Type* type;
+
+protected:
+    Pat(Span span_, type::Type* type_) : span(span_), type(type_) {}
+
+public:
+    virtual void print(Names const& names, std::ostream& dest) const = 0;
+
+    virtual opt_ptr<IdPat> as_id() = 0;
+};
+
+// ## IdPat
+
+struct IdPat : public Pat {
+    Name name;
+
+private:
+    friend struct Program;
+
+    IdPat(Span span, type::Type* type, Name name_) : Pat(span, type), name(name_) {}
+
+public:
+    virtual void print(Names const& names, std::ostream& dest) const override { name.print(names, dest); }
+
+    virtual opt_ptr<IdPat> as_id() override { return opt_ptr<IdPat>::some(this); }
+};
+
+// # Statements
+
+struct Stmt {
+    Span span;
+
+protected:
+    explicit Stmt(Span span_) : span(span_) {}
+
+public:
+    virtual void print(Names const& names, std::ostream& dest) const = 0;
+    virtual void to_cps(cps::Builder& builder, cps::Fn* fn) const = 0;
+};
+
+// ## Val
+
+struct Val : public Stmt {
+    Pat* pat;
+    Expr* val_expr;
+
+private:
+    friend struct Program;
+
+    Val(Span span, Pat* pat_, Expr* val_expr_) : Stmt(span), pat(pat_), val_expr(val_expr_) {}
+
+public:
+    virtual void print(Names const& names, std::ostream& dest) const override {
+        dest << "val ";
+        pat->print(names, dest);
+        dest << " = ";
+        val_expr->print(names, dest);
+    }
+
+    virtual void to_cps(cps::Builder& builder, cps::Fn* fn) const override;
 };
 
 // # Defs
@@ -269,6 +357,18 @@ private:
 struct Program {
     Param param(Span span, Name name, type::Type* type);
 
+    std::span<Stmt*> stmts(std::size_t count) {
+        return std::span<Stmt*>(static_cast<Stmt**>(arena_.alloc_array<Stmt*>(count)), count);
+    }
+
+    Val* val(Span span, Pat* pat, Expr* val_expr) {
+        return new (arena_.alloc<Val>()) Val(span, pat, val_expr);
+    }
+
+    Expr* block(Span span, type::Type* type, std::span<Stmt*> stmts, Expr* body) {
+        return new (arena_.alloc<Block>()) Block(span, type, std::move(stmts), body);
+    }
+
     If* if_(Span span, type::Type* type, Expr* cond, Expr* conseq, Expr* alt);
 
     std::span<Expr*> args(std::size_t arity) {
@@ -290,6 +390,10 @@ struct Program {
     Id* id(Span span, type::Type* type, Name name);
     Bool* const_bool(Span span, type::Type* type, bool value);
     I64* const_i64(Span span, type::Type* type, const char* chars, std::size_t size);
+
+    IdPat* id_pat(Span span, type::Type* type, Name name) {
+        return new (arena_.alloc<IdPat>()) IdPat(span, type, name);
+    }
 
     FunDef* fun_def(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Expr* body);
 

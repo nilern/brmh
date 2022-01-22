@@ -11,6 +11,8 @@
 
 namespace brmh::ast {
 
+struct Stmt;
+
 // # Param
 
 struct Param {
@@ -36,16 +38,28 @@ struct Expr {
     Span span;
 };
 
-struct If : public Expr {
-    If(Span span, Expr* cond, Expr* conseq, Expr* alt);
+struct Block : public Expr {
+    std::vector<Stmt*> stmts;
+    Expr* body;
+
+    Block(Span span, std::vector<Stmt*>&& stmts_, Expr* body_)
+        : Expr(span), stmts(stmts_), body(body_) {}
 
     virtual fast::Expr* type_of(fast::Program& program, TypeEnv& env) const override;
 
     virtual void print(Names const& names, std::ostream& dest) const override;
+};
 
+struct If : public Expr {
     Expr* cond;
-    Expr* conseq;
-    Expr* alt;
+    Block* conseq;
+    Block* alt;
+
+    If(Span span, Expr* cond, Block* conseq, Block* alt);
+
+    virtual fast::Expr* type_of(fast::Program& program, TypeEnv& env) const override;
+
+    virtual void print(Names const& names, std::ostream& dest) const override;
 };
 
 struct Call : public Expr {
@@ -132,6 +146,57 @@ struct Int : public Const {
     const char* digits;
 };
 
+// # Patterns
+
+struct Pat {
+    Span span;
+
+    explicit Pat(Span span_) : span(span_) {}
+
+    virtual void print(Names const& names, std::ostream& dest) const = 0;
+
+    virtual fast::Pat* type_of(fast::Program& program, TypeEnv& env) const = 0;
+    fast::Pat* check(fast::Program& program, TypeEnv& env, type::Type* type) const;
+};
+
+// ## IdPat
+
+struct IdPat : public Pat {
+    Name name;
+
+    IdPat(Span span, Name name_) : Pat(span), name(name_) {}
+
+    virtual void print(Names const& names, std::ostream& dest) const override { name.print(names, dest); }
+
+    virtual fast::Pat* type_of(fast::Program& program, TypeEnv& env) const override;
+};
+
+// # Statements
+
+struct Stmt {
+    Span span;
+
+    explicit Stmt(Span span_) : span(span_) {}
+
+    virtual void print(Names const& names, std::ostream& dest) const = 0;
+
+    virtual std::pair<fast::Stmt*, TypeEnv> check(fast::Program& program, TypeEnv& env) const = 0;
+};
+
+// ## Val
+
+struct Val : public Stmt {
+    Pat* pat;
+    Expr* val_expr;
+
+    Val(Span span, Pat* pat_, Expr* val_expr_)
+        : Stmt(span), pat(pat_), val_expr(val_expr_) {}
+
+    virtual void print(Names const& names, std::ostream& dest) const override;
+
+    virtual std::pair<fast::Stmt*, TypeEnv> check(fast::Program& program, TypeEnv& env) const override;
+};
+
 // # Defs
 
 struct Def {
@@ -146,7 +211,12 @@ struct Def {
 };
 
 struct FunDef : public Def {
-    FunDef(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Expr* body);
+    Name name;
+    std::vector<Param> params;
+    type::Type* codomain;
+    Block* body;
+
+    FunDef(Span span, Name name, std::vector<Param>&& params, type::Type* codomain, Block* body);
 
     std::vector<type::Type*> domain() const;
 
@@ -154,11 +224,6 @@ struct FunDef : public Def {
     virtual fast::Def* check(fast::Program& program, TypeEnv& env) override;
 
     virtual void print(Names const& names, std::ostream& dest) const override;
-
-    Name name;
-    std::vector<Param> params;
-    type::Type* codomain;
-    Expr* body;
 };
 
 // # Program

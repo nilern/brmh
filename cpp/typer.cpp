@@ -7,6 +7,8 @@
 
 namespace brmh {
 
+// # Program
+
 fast::Program ast::Program::check(Names& names, type::Types& types) {
     fast::Program program;
     TypeEnv env(names, types);
@@ -22,6 +24,8 @@ fast::Program ast::Program::check(Names& names, type::Types& types) {
     return program;
 }
 
+// # Defs
+
 void ast::FunDef::declare(TypeEnv &env) {
     env.declare(name, env.types().fn(domain(), codomain));
 }
@@ -29,7 +33,7 @@ void ast::FunDef::declare(TypeEnv &env) {
 fast::Def* ast::FunDef::check(fast::Program& program, TypeEnv& parent_env) {
     Name const unique_name = parent_env.find(name).value().first;
 
-    TypeEnv env = parent_env.push_params();
+    TypeEnv env = parent_env.push_frame();
     std::vector<fast::Param> new_params;
     for (const Param& param : params) {
         Name const unique_name = param.declare(env);
@@ -49,8 +53,36 @@ std::vector<type::Type*> ast::FunDef::domain() const {
     return res;
 }
 
+// # Params
+
 Name ast::Param::declare(TypeEnv &env) const {
     return env.declare(name, type);
+}
+
+// # Expressions
+
+fast::Expr* type_block(fast::Program& program, TypeEnv& env,
+                       std::vector<ast::Stmt*> const& stmts, std::size_t i,
+                       ast::Expr const* body,
+                       std::span<fast::Stmt*> typed_stmts)
+{
+    if (i < stmts.size()) {
+        auto stmt_env = stmts[i]->check(program, env);
+        typed_stmts[i] = stmt_env.first;
+        return type_block(program, stmt_env.second, stmts, i + 1, body, typed_stmts);
+    } else {
+        return body->type_of(program, env);
+    }
+}
+
+fast::Expr* ast::Block::type_of(fast::Program& program, TypeEnv& env) const {
+    if (stmts.size() > 0) {
+        std::span<fast::Stmt*> typed_stmts = program.stmts(stmts.size());
+        auto typed_body = type_block(program, env, stmts, 0, body, typed_stmts);
+        return program.block(span, typed_body->type, std::move(typed_stmts), typed_body);
+    } else {
+        return body->type_of(program, env);
+    }
 }
 
 fast::Expr* ast::If::type_of(fast::Program& program, TypeEnv& env) const {
@@ -135,44 +167,118 @@ fast::Expr* ast::Id::type_of(fast::Program& program, TypeEnv& env) const {
 
 fast::Expr* ast::Expr::check(fast::Program& program, TypeEnv& env, type::Type* type) const {
     fast::Expr* expr = type_of(program, env);
-    if (expr->type->is_subtype_of(type)) {
-        return expr;
-    } else {
-        throw type::Error(span);
+    expr->type->unify(type, span);
+    return expr;
+}
+
+// # Patterns
+
+fast::Pat* ast::Pat::check(fast::Program& program, TypeEnv& env, type::Type* type) const {
+    auto const pat = type_of(program, env);
+    pat->type->unify(type, span);
+    return pat;
+}
+
+fast::Pat* ast::IdPat::type_of(fast::Program& program, TypeEnv& env) const {
+    auto const type = env.uv();
+    Name const unique_name = env.declare(name, type);
+    return program.id_pat(span, type, unique_name);
+}
+
+// # Statements
+
+std::pair<fast::Stmt*, TypeEnv> ast::Val::check(fast::Program& program, TypeEnv& parent_env) const {
+    TypeEnv env = parent_env.push_frame();
+
+    fast::Expr* const typed_val_expr = val_expr->type_of(program, env);
+    auto const typed_pat = pat->check(program, env, typed_val_expr->type);
+
+    auto const stmt = program.val(span, typed_pat, typed_val_expr);
+    return {stmt, std::move(env)};
+}
+
+// # Unification
+
+void type::Type::unify(Type* other, Span span) {
+    Type* found_this = find();
+    Type* found_other = other->find();
+
+    if (found_this != found_other) {
+        found_this->unifyFounds(found_other, span);
     }
 }
 
-// # Subtyping
+void type::Uv::unifyFoundUvs(type::Uv* uv, Span) {
+    uv->union_(this);
+}
 
-bool type::FnType::is_subtype_of(const type::Type* other) const {
-    const type::FnType* other_fn = dynamic_cast<const type::FnType*>(other); // OPTIMIZE
-    if (!other_fn) { return false; }
+void type::Type::unifyFoundUvs(type::Uv* uv, Span span) {
+    occurs_check(uv, span);
+    uv->set(this);
+}
 
+void type::Uv::unifyFoundFns(FnType* other, Span span) { other->unifyFoundUvs(this, span); }
+
+void type::Uv::unifyFoundBools(Bool* other, Span span) { other->unifyFoundUvs(this, span); }
+
+void type::Uv::unifyFoundI64s(I64* other, Span span) { other->unifyFoundUvs(this, span); }
+
+void type::FnType::unifyFoundFns(type::FnType* other, Span span) {
     auto dom = domain.begin();
-    auto other_dom = other_fn->domain.begin();
+    auto other_dom = other->domain.begin();
     for (;; ++dom, ++other_dom) {
         if (dom != domain.end()) {
-            if (other_dom != other_fn->domain.end()) {
-                if (!(*other_dom)->is_subtype_of(*dom)) {
-                    return false;
-                }
+            if (other_dom != other->domain.end()) {
+                (*other_dom)->unify(*dom, span);
             } else {
-                return false;
+                throw type::Error(span);
             }
         } else {
-            if (other_dom == other_fn->domain.end()) {
+            if (other_dom == other->domain.end()) {
                 break;
             } else {
-                return false;
+                throw type::Error(span);
             }
         }
     }
 
-    return codomain->is_subtype_of(other_fn->codomain);
+    codomain->unify(other->codomain, span);
 }
 
-bool type::Bool::is_subtype_of(const type::Type* other) const { return this == other; }
+void type::Type::unifyFoundFns(type::FnType*, Span span) { throw type::Error(span); }
 
-bool type::I64::is_subtype_of(const type::Type* other) const { return this == other; }
+void type::Bool::unifyFoundBools(Bool*, Span) {}
+
+void type::Type::unifyFoundBools(Bool*, Span span) { throw type::Error(span); }
+
+void type::I64::unifyFoundI64s(I64*, Span) {}
+
+void type::Type::unifyFoundI64s(I64*, Span span) { throw type::Error(span); }
+
+// ## Occurs Check
+
+void type::Type::occurs_check(Uv *uv, Span span) const {
+    if (this == uv) {
+        throw type::Error(span);
+    } else {
+        occurs_check_children(uv, span);
+    }
+}
+
+void type::Uv::occurs_check_children(Uv* uv, Span span) const {
+    parent_.iter([&] (Type const* parent) {
+        parent->occurs_check(uv, span);
+    });
+}
+
+void type::FnType::occurs_check_children(Uv* uv, Span span) const {
+    for (Type const* dom : domain) {
+        dom->occurs_check(uv, span);
+    }
+
+    codomain->occurs_check(uv, span);
+}
+
+void type::Type::occurs_check_children(Uv*, Span) const {}
 
 } // namespace brmh

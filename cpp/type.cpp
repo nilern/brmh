@@ -6,6 +6,14 @@ namespace brmh::type {
 
 // # Type
 
+// ## Uv
+
+llvm::Type* Uv::to_llvm(llvm::LLVMContext &llvm_ctx) {
+    Type* self = find();
+    assert(!dynamic_cast<Uv*>(self));
+    return self->to_llvm(llvm_ctx);
+}
+
 // ## FnType
 
 FnType::FnType(std::vector<Type*>&& domain_, Type* codomain_) : domain(domain_), codomain(codomain_) {}
@@ -29,7 +37,7 @@ void FnType::print(Names const& names, std::ostream& dest) const {
     codomain->print(names, dest);
 }
 
-llvm::Type *FnType::to_llvm(llvm::LLVMContext &llvm_ctx) const {
+llvm::Type *FnType::to_llvm(llvm::LLVMContext &llvm_ctx) {
     std::vector<llvm::Type*> llvm_domain(domain.size());
     std::transform(domain.begin(), domain.end(), llvm_domain.begin(), [&] (Type* dom) {
         return dom->to_llvm(llvm_ctx);
@@ -43,7 +51,7 @@ Bool::Bool() {}
 
 void Bool::print(Names const&, std::ostream& dest) const { dest << "bool"; }
 
-llvm::Type* Bool::to_llvm(llvm::LLVMContext& llvm_ctx) const {
+llvm::Type* Bool::to_llvm(llvm::LLVMContext& llvm_ctx) {
     return llvm::Type::getInt8Ty(llvm_ctx);
 }
 
@@ -53,13 +61,11 @@ I64::I64() {}
 
 void I64::print(Names const&, std::ostream& dest) const { dest << "i64"; }
 
-llvm::Type *I64::to_llvm(llvm::LLVMContext& llvm_ctx) const {
+llvm::Type *I64::to_llvm(llvm::LLVMContext& llvm_ctx) {
     return llvm::Type::getInt64Ty(llvm_ctx);
 }
 
 // # Types
-
-Types::Types() : bool_(new Bool()), i64_(new I64()) {}
 
 Bool* Types::get_bool() { return bool_; }
 

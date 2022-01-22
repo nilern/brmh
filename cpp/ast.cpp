@@ -16,9 +16,26 @@ void Param::print(Names const& names, std::ostream& dest) const {
 
 Expr::Expr(Span sp) : span(sp) {}
 
+// ## Block
+
+void Block::print(Names const& names, std::ostream& dest) const {
+    dest << "{\n";
+
+    for (Stmt* stmt : stmts) {
+        dest << "        ";
+        stmt->print(names, dest);
+        dest << ";\n";
+    }
+
+    dest << "        ";
+    body->print(names, dest);
+
+    dest << "\n    }";
+}
+
 // # If
 
-If::If(Span span_, Expr* cond_, Expr* conseq_, Expr* alt_) : Expr(span_), cond(cond_), conseq(conseq_), alt(alt_) {}
+If::If(Span span_, Expr* cond_, Block* conseq_, Block* alt_) : Expr(span_), cond(cond_), conseq(conseq_), alt(alt_) {}
 
 void If::print(Names const& names, std::ostream& dest) const {
     dest << "if ";
@@ -78,13 +95,24 @@ Int::Int(Span span, const char* chars, std::size_t size) : Const(span), digits(s
 
 void Int::print(Names const&, std::ostream& dest) const { dest << digits; }
 
+// # Statements
+
+// ## Val
+
+void Val::print(const Names &names, std::ostream &dest) const {
+    dest << "val ";
+    pat->print(names, dest);
+    dest << " = ";
+    val_expr->print(names, dest);
+}
+
 // # Def
 
 Def::Def(Span span_) : span(span_) {}
 
 // ## FunDef
 
-FunDef::FunDef(Span span, Name name_, std::vector<Param>&& params_, type::Type* codomain_, Expr* body_)
+FunDef::FunDef(Span span, Name name_, std::vector<Param>&& params_, type::Type* codomain_, Block* body_)
     : Def(span), name(name_), params(params_), codomain(codomain_), body(body_) {}
 
 void FunDef::print(Names const& names, std::ostream& dest) const {

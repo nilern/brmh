@@ -15,7 +15,7 @@ const char* Parser::Error::what() const noexcept { return "ParseError"; }
 Parser::Parser(Lexer&& lexer, Names& names, type::Types& types) : lexer_(lexer), names_(names), types_(types) {}
 
 ast::Program Parser::program() {
-    return ast::Program(std::move(parse_defs()));
+    return ast::Program(parse_defs());
 }
 
 std::vector<ast::Def*> Parser::parse_defs() {
@@ -64,9 +64,7 @@ ast::FunDef* Parser::parse_fundef() {
     lexer_.match(Lexer::Token::Type::COLON); // Discard ':'
     const auto codomain = parse_type();
 
-    lexer_.match(Lexer::Token::Type::LBRACE); // Discard '{'
-    const auto body = expr();
-    lexer_.match(Lexer::Token::Type::RBRACE); // Discard '}'
+    const auto body = parse_block();
 
     const Pos end_pos = lexer_.pos();
 
@@ -80,6 +78,28 @@ ast::Param Parser::parse_param() {
     const auto type = parse_type();
     const Pos end_pos = lexer_.pos();
     return ast::Param{Span{start_pos, end_pos}, name, type};
+}
+
+// block ::= '{' (stmt ';')* expr '}'
+ast::Block* Parser::parse_block() {
+    auto const start_pos = lexer_.pos();
+
+    // Discard '{':
+    assert(lexer_.peek_some().typ == Lexer::Token::Type::LBRACE);
+    lexer_.next();
+
+    std::vector<ast::Stmt*> stmts;
+    while (lexer_.peek_some().typ == Lexer::Token::Type::VAL) {
+        stmts.push_back(parse_stmt());
+        lexer_.match(Lexer::Token::Type::SEMICOLON); // Discard ';'
+    }
+
+    auto const body = expr();
+
+    lexer_.match(Lexer::Token::Type::RBRACE); // Discard '}'
+
+    Span span{start_pos, lexer_.pos()};
+    return new ast::Block(span, std::move(stmts), body);
 }
 
 // expr ::= callee arglist*
@@ -119,23 +139,16 @@ std::vector<ast::Expr*> Parser::parse_arglist() {
 ast::Expr* Parser::parse_callee() {
     const auto tok = lexer_.peek_some();
     switch (tok.typ) {
+    case Lexer::Token::Type::LBRACE: return parse_block();
+
     case Lexer::Token::Type::IF: {
-        const auto if_tok = tok;
-        lexer_.next();
+        auto const if_tok = tok;
 
-        ast::Expr* const cond = expr();
-
-        lexer_.match(Lexer::Token::Type::LBRACE); // Discard '{'
-
-        ast::Expr* const conseq = expr();
-
-        lexer_.match(Lexer::Token::Type::RBRACE); // Discard '}'
+        lexer_.next(); // Discard "if"
+        auto const cond = expr();
+        auto const conseq = parse_block();
         lexer_.match(Lexer::Token::Type::ELSE); // Discard "else"
-        lexer_.match(Lexer::Token::Type::LBRACE); // Discard '{'
-
-        ast::Expr* const alt = expr();
-
-        lexer_.match(Lexer::Token::Type::RBRACE); // Discard '}'
+        auto const alt = parse_block();
 
         Span span{if_tok.pos, lexer_.pos()};
         return new ast::If(span, cond, conseq, alt);
@@ -188,6 +201,38 @@ ast::Expr* Parser::parse_callee() {
 
         Span span{tok.pos, lexer_.pos()};
         return new ast::Int(span, tok.chars, tok.size);
+    }
+
+    default: throw Error(tok.pos);
+    }
+}
+
+ast::Pat* Parser::parse_pat() {
+    const auto tok = lexer_.peek_some();
+    switch (tok.typ) {
+    case Lexer::Token::Type::ID: {
+        lexer_.next();
+
+        Span span{tok.pos, lexer_.pos()};
+        return new ast::IdPat(span, names_.sourced(tok.chars, tok.size));
+    }
+
+    default: throw Error(tok.pos);
+    }
+}
+
+ast::Stmt* Parser::parse_stmt() {
+    const auto tok = lexer_.peek_some();
+    switch (tok.typ) {
+    case Lexer::Token::Type::VAL: { // 'val' pat '=' expr
+        auto const start_pos = tok.pos;
+        lexer_.next(); // Discard "val"
+        auto const pat = parse_pat();
+        lexer_.match(Lexer::Token::Type::EQUALS); // Discard '='
+        auto const val_expr = expr();
+
+        Span span{start_pos, val_expr->span.end};
+        return new ast::Val(span, pat, val_expr);
     }
 
     default: throw Error(tok.pos);

@@ -5,17 +5,22 @@
 
 namespace brmh {
 
-fast::ToCpsNextCont::ToCpsNextCont() : ToCpsCont() {}
+fast::ToCpsNextCont::ToCpsNextCont(std::optional<Name> param_name_) : ToCpsCont(), param_name(param_name_) {}
 
 bool fast::ToCpsNextCont::is_trivial() const { return false; }
 
-cps::Expr* fast::ToCpsNextCont::operator()(cps::Builder&, Span, cps::Expr* v) const {
+cps::Expr* fast::ToCpsNextCont::operator()(cps::Builder& builder, Span, cps::Expr* v) const {
+    if (param_name.has_value()) {
+        builder.define(param_name.value(), v);
+    }
+
     return v;
 }
 
 cps::Expr* fast::ToCpsNextCont::call_to(cps::Builder& builder, Call const* fast_call, std::span<cps::Expr*> cps_exprs) const {
     cps::Block* const ret = builder.block(1, nullptr);
-    cps::Expr* const result = builder.param(fast_call->span, fast_call->type, ret, builder.names()->fresh(), 0);
+    Name const pname = param_name.has_value() ? *param_name : builder.names()->fresh();
+    cps::Expr* const result = builder.param(fast_call->span, fast_call->type, ret, pname, 0);
 
     builder.current_block().unwrap()->transfer = builder.call(fast_call->span, cps_exprs, ret);
 
@@ -37,9 +42,16 @@ cps::Expr* fast::ToCpsTrivialCont::call_to(cps::Builder& builder, Call const* fa
     return nullptr; // Will not be used
 }
 
+cps::Expr* fast::Block::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> oname) const {
+    for (fast::Stmt const* stmt : stmts) {
+        stmt->to_cps(builder, fn);
+    }
 
-cps::Expr* fast::If::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const {
-    cps::Expr* const cps_cond = cond->to_cps(builder, fn, ToCpsNextCont());
+    return body->to_cps(builder, fn, k, oname);
+}
+
+cps::Expr* fast::If::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> oname) const {
+    cps::Expr* const cps_cond = cond->to_cps(builder, fn, ToCpsNextCont(std::optional<Name>()), std::optional<Name>());
 
     cps::Block* const conseq_block = builder.block(0, nullptr);
     cps::Block* const alt_block = builder.block(0, nullptr);
@@ -48,35 +60,36 @@ cps::Expr* fast::If::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const&
     // TODO: DRY:
     if (k.is_trivial()) {
         builder.set_current_block(conseq_block);
-        conseq->to_cps(builder, fn, k);
+        conseq->to_cps(builder, fn, k, std::optional<Name>());
 
         builder.set_current_block(alt_block);
-        alt->to_cps(builder, fn, k);
+        alt->to_cps(builder, fn, k, std::optional<Name>());
 
         return nullptr; // Will not be used
     } else {
         cps::Block* const join = builder.block(1, nullptr);
-        cps::Expr* result = builder.param(span, type, join, builder.names()->fresh(), 0);
+        Name const name = oname.has_value() ? *oname : builder.names()->fresh();
+        cps::Expr* result = builder.param(span, type, join, name, 0);
         fast::ToCpsTrivialCont join_k(join);
 
         builder.set_current_block(conseq_block);
-        conseq->to_cps(builder, fn, join_k);
+        conseq->to_cps(builder, fn, join_k, std::optional<Name>());
 
         builder.set_current_block(alt_block);
-        alt->to_cps(builder, fn, join_k);
+        alt->to_cps(builder, fn, join_k, std::optional<Name>());
 
         builder.set_current_block(join);
         return result;
     }
 }
 
-cps::Expr* fast::Call::to_cps(cps::Builder &builder, cps::Fn *fn, const ToCpsCont &k) const {
+cps::Expr* fast::Call::to_cps(cps::Builder &builder, cps::Fn *fn, const ToCpsCont &k, std::optional<Name>) const {
     std::span<cps::Expr*> cps_exprs = builder.args(1 + args.size());
 
-    cps_exprs[0] = callee->to_cps(builder, fn, k);
+    cps_exprs[0] = callee->to_cps(builder, fn, k, std::optional<Name>());
 
     for (std::size_t i = 0; i < args.size(); ++i) {
-        cps_exprs[i + 1] = args[i]->to_cps(builder, fn, ToCpsNextCont());
+        cps_exprs[i + 1] = args[i]->to_cps(builder, fn, ToCpsNextCont(std::optional<Name>()), std::optional<Name>());
     }
 
     return k.call_to(builder, this, cps_exprs);
@@ -84,64 +97,75 @@ cps::Expr* fast::Call::to_cps(cps::Builder &builder, cps::Fn *fn, const ToCpsCon
 
 // TODO: DRY:
 
-cps::Expr* fast::AddWI64::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const {
+cps::Expr* fast::AddWI64::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name_hint) const {
     // FIXME: brittle '2':s:
 
     std::array<cps::Expr*, 2> cps_args;
 
     for (std::size_t i = 0; i < 2; ++i) {
-        cps_args[i] = args[i]->to_cps(builder, fn, ToCpsNextCont());
+        cps_args[i] = args[i]->to_cps(builder, fn, ToCpsNextCont(std::optional<Name>()), std::optional<Name>());
     }
 
-    return k(builder, span, builder.add_w_i64(span, type, cps_args));
+    Name const name = name_hint.has_value() ? *name_hint : builder.names()->fresh();
+    return k(builder, span, builder.add_w_i64(span, name, type, cps_args));
 }
 
-cps::Expr* fast::SubWI64::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const {
+cps::Expr* fast::SubWI64::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name_hint) const {
     // FIXME: brittle '2':s:
 
     std::array<cps::Expr*, 2> cps_args;
 
     for (std::size_t i = 0; i < 2; ++i) {
-        cps_args[i] = args[i]->to_cps(builder, fn, ToCpsNextCont());
+        cps_args[i] = args[i]->to_cps(builder, fn, ToCpsNextCont(std::optional<Name>()), std::optional<Name>());
     }
 
-    return k(builder, span, builder.sub_w_i64(span, type, cps_args));
+    Name const name = name_hint.has_value() ? *name_hint : builder.names()->fresh();
+    return k(builder, span, builder.sub_w_i64(span, name, type, cps_args));
 }
 
-cps::Expr* fast::MulWI64::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const {
+cps::Expr* fast::MulWI64::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name_hint) const {
     // FIXME: brittle '2':s:
 
     std::array<cps::Expr*, 2> cps_args;
 
     for (std::size_t i = 0; i < 2; ++i) {
-        cps_args[i] = args[i]->to_cps(builder, fn, ToCpsNextCont());
+        cps_args[i] = args[i]->to_cps(builder, fn, ToCpsNextCont(std::optional<Name>()), std::optional<Name>());
     }
 
-    return k(builder, span, builder.mul_w_i64(span, type, cps_args));
+    Name const name = name_hint.has_value() ? *name_hint : builder.names()->fresh();
+    return k(builder, span, builder.mul_w_i64(span, name, type, cps_args));
 }
 
-cps::Expr* fast::EqI64::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k) const {
+cps::Expr* fast::EqI64::to_cps(cps::Builder& builder, cps::Fn* fn, ToCpsCont const& k, std::optional<Name> name_hint) const {
     // FIXME: brittle '2':s:
 
     std::array<cps::Expr*, 2> cps_args;
 
     for (std::size_t i = 0; i < 2; ++i) {
-        cps_args[i] = args[i]->to_cps(builder, fn, ToCpsNextCont());
+        cps_args[i] = args[i]->to_cps(builder, fn, ToCpsNextCont(std::optional<Name>()), std::optional<Name>());
     }
 
-    return k(builder, span, builder.eq_i64(span, type, cps_args));
+    Name const name = name_hint.has_value() ? *name_hint : builder.names()->fresh();
+    return k(builder, span, builder.eq_i64(span, name, type, cps_args));
 }
 
-cps::Expr* fast::Id::to_cps(cps::Builder& builder, cps::Fn*, ToCpsCont const& k) const {
+cps::Expr* fast::Id::to_cps(cps::Builder& builder, cps::Fn*, ToCpsCont const& k, std::optional<Name>) const {
     return k(builder, span, builder.id(name));
 }
 
-cps::Expr* fast::Bool::to_cps(cps::Builder& builder, cps::Fn*, ToCpsCont const& k) const {
-    return k(builder, span, builder.const_bool(span, type, value));
+cps::Expr* fast::Bool::to_cps(cps::Builder& builder, cps::Fn*, ToCpsCont const& k, std::optional<Name>name_hint) const {
+    Name const name = name_hint.has_value() ? *name_hint : builder.names()->fresh();
+    return k(builder, span, builder.const_bool(span, name, type, value));
 }
 
-cps::Expr* fast::I64::to_cps(cps::Builder& builder, cps::Fn*, ToCpsCont const& k) const {
-    return k(builder, span, builder.const_i64(span, type, digits, /* OPTIMIZE: */ strlen(digits)));
+cps::Expr* fast::I64::to_cps(cps::Builder& builder, cps::Fn*, ToCpsCont const& k, std::optional<Name>name_hint) const {
+    Name const name = name_hint.has_value() ? *name_hint : builder.names()->fresh();
+    return k(builder, span, builder.const_i64(span, name, type, digits, /* OPTIMIZE: */ strlen(digits)));
+}
+
+void fast::Val::to_cps(cps::Builder& builder, cps::Fn* fn) const {
+    fast::IdPat* const id_pat = pat->as_id().unwrap();
+    val_expr->to_cps(builder, fn, ToCpsNextCont(std::optional(id_pat->name)), id_pat->name);
 }
 
 void fast::FunDef::cps_declare(cps::Builder& builder) const {
@@ -162,7 +186,7 @@ void fast::FunDef::to_cps(cps::Builder& builder) const {
     fn->entry = entry;
 
     builder.set_current_block(entry);
-    body->to_cps(builder, fn, ToCpsTrivialCont(fn->ret));
+    body->to_cps(builder, fn, ToCpsTrivialCont(fn->ret), std::optional<Name>());
 }
 
 cps::Program fast::Program::to_cps(Names& names, type::Types& types) const {

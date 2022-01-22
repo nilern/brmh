@@ -2,7 +2,8 @@ fun fact(n : i64) : i64 {
     if __eqI64(n, 0) {
         1
     } else {
-        __mulWI64(n, fact(__subWI64(n, 1)))
+        val nn = __subWI64(n, 1);
+        __mulWI64(n, fact(nn))
     }
 }
 

@@ -7,9 +7,14 @@ namespace brmh {
 
 template<class T>
 struct opt_ptr {
-    static opt_ptr<T> none() { return opt_ptr(); }
+    static opt_ptr none() { return opt_ptr(); }
 
     static opt_ptr some(T* ptr) { return opt_ptr(ptr); }
+
+    bool is_none() const { return !ptr_; }
+
+    template<typename R, typename F, typename G>
+    R match(F f, G g) const { return ptr_ ? f(ptr_) : g(); }
 
     T* unwrap() const {
         assert(ptr_);

@@ -516,11 +516,13 @@ public:
 
     void set_current_block(Block* block) { current_block_ = opt_ptr<Block>::some(block); }
 
+    void define(Name name, Expr* expr) { exprs_.insert({name, expr}); }
+
     // OPTIMIZE: deduplicate constants, constant folding, CSE etc.:
 
     Fn* fn(Span span, Name name, type::FnType* type, bool external, Return* ret, Block* entry) {
         Fn* const res = new (arena_.alloc<Fn>()) Fn(span, name, type, ret, entry);
-        exprs_.insert({name, res});
+        define(name, res);
         if (external) { externs_.push_back(res); }
         return res;
     }
@@ -539,7 +541,7 @@ public:
 
         block_->params[index] = param;
 
-        exprs_.insert({name, param});
+        define(name, param);
 
         return param;
     }
@@ -560,32 +562,32 @@ public:
         return new (arena_.alloc<Goto>()) Goto(span, dest, res);
     }
 
-    Expr* add_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args) {
-        return new (arena_.alloc<AddWI64>()) AddWI64(span, names_->fresh(), type, args);
+    Expr* add_w_i64(Span span, Name name, type::Type* type, std::array<Expr*, 2> args) {
+        return new (arena_.alloc<AddWI64>()) AddWI64(span, name, type, args);
     }
 
-    Expr* sub_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args) {
-        return new (arena_.alloc<SubWI64>()) SubWI64(span, names_->fresh(), type, args);
+    Expr* sub_w_i64(Span span, Name name, type::Type* type, std::array<Expr*, 2> args) {
+        return new (arena_.alloc<SubWI64>()) SubWI64(span, name, type, args);
     }
 
-    Expr* mul_w_i64(Span span, type::Type* type, std::array<Expr*, 2> args) {
-        return new (arena_.alloc<MulWI64>()) MulWI64(span, names_->fresh(), type, args);
+    Expr* mul_w_i64(Span span, Name name, type::Type* type, std::array<Expr*, 2> args) {
+        return new (arena_.alloc<MulWI64>()) MulWI64(span, name, type, args);
     }
 
-    Expr* eq_i64(Span span, type::Type* type, std::array<Expr*, 2> args) {
-        return new (arena_.alloc<EqI64>()) EqI64(span, names_->fresh(), type, args);
+    Expr* eq_i64(Span span, Name name, type::Type* type, std::array<Expr*, 2> args) {
+        return new (arena_.alloc<EqI64>()) EqI64(span, name, type, args);
     }
 
     Expr* id(Name name) { return exprs_.at(name); }
 
-    Bool *const_bool(Span span, type::Type *type, bool value) {
-        return new (arena_.alloc<Bool>()) Bool(span, names_->fresh(), type, value);
+    Bool *const_bool(Span span, Name name, type::Type *type, bool value) {
+        return new (arena_.alloc<Bool>()) Bool(span, name, type, value);
     }
 
-    I64* const_i64(Span span, type::Type* type, const char* digits_, std::size_t size) {
+    I64* const_i64(Span span, Name name, type::Type* type, const char* digits_, std::size_t size) {
         char* digits = static_cast<char*>(arena_.alloc_array<char>(size));
         strncpy(digits, digits_, size);
-        return new (arena_.alloc<I64>()) I64(span, names_->fresh(), type, digits);
+        return new (arena_.alloc<I64>()) I64(span, name, type, digits);
     }
 
     Program build() { return Program(std::move(arena_), std::move(externs_)); }

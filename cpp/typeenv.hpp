@@ -32,13 +32,15 @@ public:
                   : std::optional<std::pair<Name, type::Type*>>();
     }
 
-    TypeEnv push_params() { return TypeEnv(names_, types_, this); }
+    TypeEnv push_frame() { return TypeEnv(names_, types_, this); }
 
     Name declare(Name name, type::Type* type) {
         Name const unique_name = names_.freshen(name);
         bindings_.insert({name, {unique_name, type}});
         return unique_name;
     }
+
+    type::Uv* uv() const { return types_.uv(); }
 };
 
 } // namespace brmh

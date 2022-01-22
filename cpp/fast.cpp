@@ -18,6 +18,23 @@ void Param::print(Names const& names, std::ostream& dest) const {
 
 Expr::Expr(Span span_, type::Type* type_) : span(span_), type(type_) {}
 
+// ## Block
+
+void Block::print(Names const& names, std::ostream& dest) const {
+    dest << "{\n";
+
+    for (Stmt* stmt : stmts) {
+        dest << "        ";
+        stmt->print(names, dest);
+        dest << ";\n";
+    }
+
+    dest << "        ";
+    body->print(names, dest);
+
+    dest << "\n    }";
+}
+
 // ## If
 
 If::If(Span span, type::Type* type, Expr* cond_, Expr* conseq_, Expr* alt_)
